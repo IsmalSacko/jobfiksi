@@ -1,0 +1,35 @@
+# Ignore les environnements virtuels
+venv/
+env/
+
+# Ignore les fichiers compilés Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore les fichiers de configuration spécifiques à l'IDE
+.idea/
+.vscode/
+
+# Ignore les fichiers de log
+*.log
+
+# Ignore les fichiers de dépendances (si tu veux utiliser un fichier requirements.txt ou Pipfile)
+Pipfile.lock
+poetry.lock
+
+# Ignore les bases de données SQLite
+*.sqlite3
+
+# Ignore les fichiers générés par Django
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Ignore les fichiers de migration Django
+#*/migrations/*
+
+# Ignore tout fichier sensible de configuration
+.env
