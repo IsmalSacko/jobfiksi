@@ -4,22 +4,12 @@ from django.contrib.auth.models import AbstractUser
 # Type d'utilisateur : Demandeur ou Offrant
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = (
-        ('demandeur', 'Demandeur'),
-        ('offrant', 'Offrant'),
+        ('candidate', 'Candidat'),
+        ('recuteur', 'Recruteur'),
        )
-    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='demandeur')
-        # Éviter les conflits avec les reverse accessors de Django
-    groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='customuser_groups',  # Nouveau related_name
-        blank=True,
-    )
+    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='candidat')
+    # Optionnel : pour que le superuser soit créé sans mot de passe explicite lors de la création via l'admin ou API
     
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='customuser_permissions',  # Nouveau related_name
-        blank=True,
-    )
 
 # Moddel de l'offre d'emploi
 class Offre(models.Model):
