@@ -2,24 +2,43 @@ from rest_framework import serializers
 from .models import CustomUser, Offre, Ville
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    user_type = serializers.ChoiceField(choices=CustomUser.USER_TYPE_CHOICES)
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'password', 'email', 'user_type']
-        # Incluez 'password' si vous souhaitez gérer le mot de passe
-        extra_kwargs = {'password': {'write_only': True}} # Pour que le mot de passe ne soit pas affiché
-    
-
-
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'user_type',]
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},
+            'date_naissance': {'required': False}
+        }
 
     def create(self, validated_data):
         user = CustomUser(
             username=validated_data['username'],
             email=validated_data['email'],
-            user_type=validated_data['user_type']
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            # acceptr une chaîne de caractères pour le type d'utilisateur
+            user_type= str(validated_data.get('user_type', '')), 
+            date_naissance=validated_data.get('date_naissance', None)
         )
-        user.set_password(validated_data['password'])  # N'oubliez pas de hasher le mot de passe
+        user.set_password(validated_data.get('password'))  # Hachage du mot de passe
         user.save()
         return user
+
+    def update(self, instance, validated_data):
+        instance.email = validated_data.get('email', instance.email)
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.user_type = validated_data.get('user_type', instance.user_type)
+        instance.date_naissance = validated_data.get('date_naissance', instance.date_naissance)
+
+        password = validated_data.get('password', None)
+        if password:
+            instance.set_password(password)  # Hachage du mot de passe
+
+        instance.save()
+        return instance
+
 
 
 class VilleSerializer(serializers.ModelSerializer):

@@ -8,6 +8,9 @@ from .views import (
     RecruiterDetailView,
     CandidateListCreateView,
     CandidateDetailView,
+    LoginView,
+
+
 )
 
 urlpatterns = [
@@ -22,5 +25,9 @@ urlpatterns = [
     # URLs pour les candidats
     path('candidats/', CandidateListCreateView.as_view(), name='candidate-list'),
     path('candidats/<int:pk>/', CandidateDetailView.as_view(), name='candidate-detail'),
+
+     path('login/', LoginView.as_view(), name='login'),
+
+   
 ]
 

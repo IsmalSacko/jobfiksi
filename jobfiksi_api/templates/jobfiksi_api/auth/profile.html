@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Profil Utilisateur - Jobfiksi</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Jobfiksi</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">Home</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'profile' %}">Profil</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'rest_framework:logout' %}">Déconnexion</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'rest_framework:login' %}">Connexion</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="">Inscription</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container profile-container mt-5 pt-5">
+        <h2>Profil Utilisateur</h2>
+        <div class="row">
+            <!-- Informations du profil -->
+            <div class="col-md-6 profile-info">
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label for="username">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" id="username" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="first_name">Prénom</label>
+                        <input type="text" class="form-control" id="first_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name">Nom de famille</label>
+                        <input type="text" class="form-control" id="last_name">
+                        <input type="hidden" id="user_id" value="{{ user.id }}">
+                    </div>
+                    <button type="button" class="btn btn-primary" id="update-profile-btn">Mettre à jour le profil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiUrl = 'http://127.0.0.1:8000/api/users/';
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            // Charger les informations du profil utilisateur
+            axios.get(apiUrl, { headers: { 'X-CSRFToken': csrfToken } })
+                .then(response => {
+                    const data = response.data[0];  // Assurez-vous de cibler le bon utilisateur
+                    if (data) {
+                        document.getElementById('username').value = data.username;
+                        document.getElementById('email').value = data.email;
+                        document.getElementById('first_name').value = data.first_name || '';
+                        document.getElementById('last_name').value = data.last_name || '';
+                        document.getElementById('user_id').value = data.id;  // Stocker l'ID de l'utilisateur
+                    } else {
+                        console.error('Aucune donnée utilisateur trouvée');
+                        Toastify({
+                            text: "Aucune donnée utilisateur trouvée.",
+                            backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
+                        }).showToast();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement du profil:', error);
+                    Toastify({
+                        text: "Erreur lors du chargement du profil.",
+                        backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
+                    }).showToast();
+                });
+
+            // Mettre à jour les informations du profil utilisateur
+            document.getElementById('update-profile-btn').addEventListener('click', () => {
+                const userId = document.getElementById('user_id').value;
+                axios.put(`http://127.0.0.1:8000/api/users/${userId}/`, {
+                    username: document.getElementById('username').value,  // Ajouter le champ username si nécessaire
+                    email: document.getElementById('email').value,
+                    first_name: document.getElementById('first_name').value,
+                    last_name: document.getElementById('last_name').value
+                }, { headers: { 'X-CSRFToken': csrfToken } })
+                .then(response => {
+                    Toastify({
+                        text: "Profil mis à jour avec succès.",
+                        backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                    }).showToast();
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la mise à jour du profil:', error);
+                    Toastify({
+                        text: "Erreur lors de la mise à jour du profil.",
+                        backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
+                    }).showToast();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

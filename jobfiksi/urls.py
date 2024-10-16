@@ -19,6 +19,8 @@ from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.views import obtain_auth_token
 from django.urls import path, include
+from jobfiksi_api.views import login_view, profile_view, register_view, UserTypeList
+
 
 
 
@@ -26,6 +28,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('jobfiksi_api.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('login/', login_view, name='login'),
+    path('profile/', profile_view, name='profile'),
+    path('register/', register_view, name='register'),
+    path('api/user-types/', UserTypeList.as_view(), name='user-types'),
+  
   
 ]

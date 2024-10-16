@@ -7,6 +7,8 @@ from rest_framework import status
 from .models import CustomUser, Offre
 from .serializers import CustomUserSerializer, OffreSerializer, VilleSerializer, OffreSerializer
 from .permissions import IsRecruiter, IsCandidate  # Permissions personnalisées à implémenter
+from rest_framework.views import APIView
+from django.shortcuts import render
 
 
 
@@ -33,11 +35,15 @@ class CustomUserListCreateView(generics.ListCreateAPIView):
 
         # Connecter l'utilisateur automatiquement
         login(request, user)
+        
+        
 
         # Retourner les détails de l'utilisateur avec le token
         return Response({
             "user": CustomUserSerializer(user).data,
             "token": token.key
+            
+
         }, status=status.HTTP_201_CREATED)
 
 # Vue générale pour les détails, mise à jour, et suppression des utilisateurs
@@ -89,10 +95,7 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
 class OffreListCreateView(generics.ListCreateAPIView):
     queryset = Offre.objects.all()
     serializer_class = OffreSerializer
-    permission_classes = [IsAuthenticated, IsRecruiter]
-   
-
-      
+    permission_classes = [IsAuthenticated, IsRecruiter]   
 
 
 
@@ -103,5 +106,54 @@ class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Offre.objects.all()
     serializer_class = OffreSerializer
     permission_classes = [IsAuthenticated, IsRecruiter]
-  
 
+
+# views.py
+from django.contrib.auth import authenticate
+from rest_framework import status
+from rest_framework.views import APIView
+
+class LoginView(APIView):
+    """
+    Permet aux utilisateurs de se connecter et de recevoir un token.
+    """
+    permission_classes = [AllowAny]  # Autoriser tout le monde à se connecter
+
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # Créer un token si l'utilisateur existe
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Identifiants invalides."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def login_view(request):
+    """
+    Affiche le formulaire de connexion.
+    """
+    return render(request, 'jobfiksi_api/auth/login.html')
+
+def profile_view(request):
+    """
+    Affiche le profil de l'utilisateur connecté.
+    """
+    return render(request, 'jobfiksi_api/auth/profile.html')
+
+def register_view(request):
+    """
+    Affiche le formulaire d'inscription.
+    """
+    return render(request, 'jobfiksi_api/auth/register.html')
+
+
+class UserTypeList(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        user_types = ['candidat', 'recruteur']  # Remplacez par les types d'utilisateur de votre base de données si nécessaire
+        return Response(user_types)

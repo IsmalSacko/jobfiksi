@@ -18,6 +18,8 @@ class CustomUser(AbstractUser):
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='candidat')
     # Champ email unique
     email = models.EmailField(unique=True) 
+    date_naissance = models.DateField(null=True, blank=True)
+
     
 
 # Moddel de l'offre d'emploi
