@@ -127,7 +127,7 @@
             });
     
             // Charger les villes dans le select
-            axios.get('http://127.0.0.1:8000/api/villes/') // Changez cette URL selon votre API pour récupérer les villes
+            axios.get('/api/villes/') // Changez cette URL selon votre API pour récupérer les villes
                 .then(response => {
                     const villes = response.data;
                     const villeSelect = document.getElementById('ville');
