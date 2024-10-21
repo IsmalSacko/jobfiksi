@@ -28,8 +28,8 @@ class UserCreateView(generics.CreateAPIView):
     serializer_class = UserCreateSerializer
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request, *args, **kwargs):
-        return render(request, 'jobfiksi_api/auth/register.html')
+    # def get(self, request, *args, **kwargs):
+    #     return render(request, 'jobfiksi_api/auth/register.html')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -298,3 +298,6 @@ class PostulerAnnonceView(APIView):
 
 def home(request):
     return render(request, 'jobfiksi_api/home.html')
+
+def create_user(request):
+    return render(request, 'jobfiksi_api/auth/register.html')
