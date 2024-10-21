@@ -1,82 +1,82 @@
 from rest_framework import serializers
-from .models import CustomUser, Offre, Ville
+from django.contrib.auth import get_user_model
+from .models import Candidat, Restaurant, Annonce, Candidature, PreferenceCandidat, PreferenceRestaurant, Offre, Ville
 
-class CustomUserSerializer(serializers.ModelSerializer):
-    user_type = serializers.ChoiceField(choices=CustomUser.USER_TYPE_CHOICES)
-    class Meta:
-        model = CustomUser
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'user_type',]
-        extra_kwargs = {
-            'password': {'write_only': True, 'required': False},
-            'date_naissance': {'required': False}
-        }
-
-    def create(self, validated_data):
-        user = CustomUser(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
-            # acceptr une chaîne de caractères pour le type d'utilisateur
-            user_type= str(validated_data.get('user_type', '')), 
-            date_naissance=validated_data.get('date_naissance', None)
-        )
-        user.set_password(validated_data.get('password'))  # Hachage du mot de passe
-        user.save()
-        return user
-
-    def update(self, instance, validated_data):
-        instance.email = validated_data.get('email', instance.email)
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.user_type = validated_data.get('user_type', instance.user_type)
-        instance.date_naissance = validated_data.get('date_naissance', instance.date_naissance)
-
-        password = validated_data.get('password', None)
-        if password:
-            instance.set_password(password)  # Hachage du mot de passe
-
-        instance.save()
-        return instance
-
-
-
+from rest_framework import serializers
 class VilleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ville
-        fields = ['id', 'nom', 'code_postal']
+        fields = ['nom']
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    password = serializers.CharField(required=True)
 
-class OffreSerializer(serializers.ModelSerializer):
-    localisation = VilleSerializer()
-    user = serializers.CharField()  # Accepte une chaîne de caractères pour l'utilisateur
+User = get_user_model()
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    user_type = serializers.ChoiceField(choices=User.USER_TYPE_CHOICES)
 
     class Meta:
-        model = Offre
-        fields = ['titre', 'description', 'salaire', 'localisation', 'user']
+        model = User
+        fields = ['username', 'email', 'password', 'user_type']
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        localisation_data = validated_data.pop('localisation')
-        localisation, created = Ville.objects.get_or_create(**localisation_data)
+        user_type = validated_data.pop('user_type')
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            user_type=user_type
+        )
 
-        # Récupère l'utilisateur par le nom d'utilisateur ou l'email
-        user_identifier = validated_data.pop('user')
-        try:
-            user = CustomUser.objects.get(username=user_identifier)  # ou email=user_identifier
-        except CustomUser.DoesNotExist:
-            raise serializers.ValidationError("L'utilisateur spécifié n'existe pas.")
+        # Créer le profil correspondant selon le type
+        if user_type == 'candidat':
+            Candidat.objects.create(user=user)
+        elif user_type == 'restaurant':
+            Restaurant.objects.create(user=user)
 
-        offre = Offre.objects.create(localisation=localisation, user=user, **validated_data)
-        return offre
+        return user
 
-    def update(self, instance, validated_data):
-        localisation_data = validated_data.pop('localisation', None)
-        if localisation_data:
-            ville, created = Ville.objects.get_or_create(**localisation_data)
-            instance.localisation = ville
-        instance.titre = validated_data.get('titre', instance.titre)
-        instance.description = validated_data.get('description', instance.description)
-        instance.salaire = validated_data.get('salaire', instance.salaire)
-        instance.save()
-        return instance
+class CandidatSerializer(serializers.ModelSerializer):
+    ville = serializers.CharField(source='ville.nom', read_only=True)
+    class Meta:
+        model = Candidat
+        fields = ['nom', 'prenom', 'tel', 'date_naissance', 'adresse', 'ville', 'cv', 'niveau_etude', 'experience']
+
+class RestaurantSerializer(serializers.ModelSerializer):
+    #ville = VilleSerializer(read_only=True)
+    ville = serializers.CharField(source='ville.nom', read_only=True)
+    class Meta:
+        model = Restaurant
+        fields = ['nom', 'tel', 'adresse', 'ville', 'type']
+
+class AnnonceSerializer(serializers.ModelSerializer):
+    created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
+    ville = serializers.StringRelatedField(source='ville.nom', read_only=True)
+
+    class Meta:
+        model = Annonce
+        fields = ['titre', 'description', 'date_publication', 'type_contrat', 'salaire', 'temps_travail', 'statut', 'created_by', 'ville']
+
+class CandidatureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Candidature
+        fields = ['candidat', 'annonce', 'date_candidature']
+
+class PreferenceCandidatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PreferenceCandidat
+        fields = ['candidat', 'flexibilite_deplacement', 'secteur', 'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation', 'possibilite_contrat_direct']
+
+class PreferenceRestaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PreferenceRestaurant
+        fields = ['restaurant', 'niveau_etude', 'possibilite_former', 'possibilite_debutant', 'horaire_travail']
+
+class OffreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Offre
+        fields = ['annonce']
 
 

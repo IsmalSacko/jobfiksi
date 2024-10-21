@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>Profil Utilisateur - Jobfiksi</title>
-    <!-- Bootstrap CSS -->
+    <title>Profil Restaurant - Jobfiksi</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
@@ -25,17 +24,17 @@
                     </li>
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'profile' %}">Profil</a>
+                            <a class="nav-link" href="{% url 'profile-detail' %}">Profil</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'rest_framework:logout' %}">Déconnexion</a>
+                            <a class="nav-link" href="{% url 'logout' %}">Déconnexion</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'rest_framework:login' %}">Connexion</a>
+                            <a class="nav-link" href="{% url 'login' %}">Connexion</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="">Inscription</a>
+                            <a class="nav-link" href="{% url 'user_create' %}">Inscription</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -45,29 +44,39 @@
 
     <!-- Main Content -->
     <div class="container profile-container mt-5 pt-5">
-        <h2>Profil Utilisateur</h2>
+        <h2>Profil Restaurant</h2>
         <div class="row">
             <!-- Informations du profil -->
             <div class="col-md-6 profile-info">
-                <form id="profile-form">
+                <form id="restaurant-form">
+                    {% csrf_token %}
                     <div class="form-group">
-                        <label for="username">Nom d'utilisateur</label>
-                        <input type="text" class="form-control" id="username" disabled>
+                        <label for="nom">Nom du Restaurant</label>
+                        <input type="text" class="form-control" id="nom" required readonly>
                     </div>
                     <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" class="form-control" id="email" required>
+                        <label for="tel">Téléphone</label>
+                        <input type="text" class="form-control" id="tel" required readonly>
                     </div>
                     <div class="form-group">
-                        <label for="first_name">Prénom</label>
-                        <input type="text" class="form-control" id="first_name">
+                        <label for="adresse">Adresse</label>
+                        <input type="text" class="form-control" id="adresse" required readonly>
                     </div>
                     <div class="form-group">
-                        <label for="last_name">Nom de famille</label>
-                        <input type="text" class="form-control" id="last_name">
-                        <input type="hidden" id="user_id" value="{{ user.id }}">
+                        <label for="ville">Ville</label>
+                        <select class="form-control" id="ville" disabled>
+                            <option value="" disabled selected>Sélectionnez une ville</option>
+                            <!-- Les options seront chargées dynamiquement -->
+                        </select>
                     </div>
-                    <button type="button" class="btn btn-primary" id="update-profile-btn">Mettre à jour le profil</button>
+                    <div class="form-group">
+                        <label for="type">Type de Restaurant</label>
+                        <input type="text" class="form-control" id="type" required readonly>
+                    </div>
+                    
+                    <input type="hidden" id="user_id" value="{{ user.id }}">
+                    <button type="button" class="btn btn-secondary" id="edit-restaurant-btn">Modifier</button>
+                    <button type="button" class="btn btn-primary" id="update-restaurant-btn" disabled>Mettre à jour le profil</button>
                 </form>
             </div>
         </div>
@@ -78,23 +87,50 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const apiUrl = 'http://127.0.0.1:8000/api/users/';
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const userId = document.getElementById('user_id').value;
+            const apiUrl = `http://127.0.0.1:8000/api/restaurants/${userId}/`;
+            const villesUrl = 'http://127.0.0.1:8000/api/villes/'; // URL pour récupérer les villes
 
-            // Charger les informations du profil utilisateur
-            axios.get(apiUrl, { headers: { 'X-CSRFToken': csrfToken } })
+            // Charger le token d'authentification depuis localStorage
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                console.error('Token d\'authentification introuvable dans localStorage.');
+                Toastify({
+                    text: "Erreur: veuillez vous connecter. 😢",
+                    backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
+                }).showToast();
+                return; // Sortir si le token n'est pas trouvé
+            }
+
+            // Charger les informations du restaurant
+            axios.get(apiUrl, { headers: {'Authorization': 'Token ' + token} })
                 .then(response => {
-                    const data = response.data[0];  // Assurez-vous de cibler le bon utilisateur
+                    const data = response.data;
                     if (data) {
-                        document.getElementById('username').value = data.username;
-                        document.getElementById('email').value = data.email;
-                        document.getElementById('first_name').value = data.first_name || '';
-                        document.getElementById('last_name').value = data.last_name || '';
-                        document.getElementById('user_id').value = data.id;  // Stocker l'ID de l'utilisateur
+                        document.getElementById('nom').value = data.nom || '';
+                        document.getElementById('tel').value = data.tel || '';
+                        document.getElementById('adresse').value = data.adresse || '';
+                        
+                        if (data.ville) {
+                            const villeSelect = document.getElementById('ville');
+                            villeSelect.innerHTML = ''; // Réinitialiser le contenu
+                            const option = document.createElement('option');
+                            option.value = data.ville.id; // ID de la ville
+                            option.textContent = data.ville.nom; // Nom de la ville
+                            villeSelect.appendChild(option);
+                            villeSelect.value = data.ville.id; // Sélectionner la ville
+                            Toastify({
+                                text: "Données du restaurant chargées avec succès! 🎉",
+                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            }).showToast();
+                        }
+
+                        document.getElementById('type').value = data.type || '';
                     } else {
-                        console.error('Aucune donnée utilisateur trouvée');
+                        console.error('Aucune donnée restaurant trouvée');
                         Toastify({
-                            text: "Aucune donnée utilisateur trouvée.",
+                            text: "Aucune donnée restaurant trouvée. 😞",
                             backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
                         }).showToast();
                     }
@@ -102,33 +138,76 @@
                 .catch(error => {
                     console.error('Erreur lors du chargement du profil:', error);
                     Toastify({
-                        text: "Erreur lors du chargement du profil.",
+                        text: "Erreur lors du chargement du profil. 😟",
                         backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
                     }).showToast();
                 });
 
-            // Mettre à jour les informations du profil utilisateur
-            document.getElementById('update-profile-btn').addEventListener('click', () => {
-                const userId = document.getElementById('user_id').value;
-                axios.put(`http://127.0.0.1:8000/api/users/${userId}/`, {
-                    username: document.getElementById('username').value,  // Ajouter le champ username si nécessaire
-                    email: document.getElementById('email').value,
-                    first_name: document.getElementById('first_name').value,
-                    last_name: document.getElementById('last_name').value
-                }, { headers: { 'X-CSRFToken': csrfToken } })
+            // Charger les villes dans le select
+            axios.get(villesUrl, { headers: {'Authorization': 'Token ' + token} })
                 .then(response => {
-                    Toastify({
-                        text: "Profil mis à jour avec succès.",
-                        backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                    }).showToast();
+                    const villes = response.data;
+                    const villeSelect = document.getElementById('ville');
+
+                    // Ajouter chaque ville comme option dans le select
+                    villes.forEach(ville => {
+                        const option = document.createElement('option');
+                        option.value = ville.id; // ID de la ville
+                        option.textContent = ville.nom; // Nom de la ville
+                        villeSelect.appendChild(option);
+                    });
                 })
                 .catch(error => {
-                    console.error('Erreur lors de la mise à jour du profil:', error);
+                    console.error('Erreur lors du chargement des villes:', error);
                     Toastify({
-                        text: "Erreur lors de la mise à jour du profil.",
+                        text: "Erreur lors du chargement des villes. 😟",
                         backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
                     }).showToast();
                 });
+
+            // Mettre à jour les informations du profil restaurant
+            document.getElementById('update-restaurant-btn').addEventListener('click', () => {
+                const updatedData = {
+                    nom: document.getElementById('nom').value,
+                    tel: document.getElementById('tel').value,
+                    adresse: document.getElementById('adresse').value,
+                    ville: document.getElementById('ville').value, // ID de la ville
+                    type: document.getElementById('type').value
+                };
+
+                console.log('Données à envoyer:', updatedData);
+
+                // Envoi de la requête PUT
+                axios.put(apiUrl, updatedData, { headers: { 'Authorization': 'Token ' + token } })
+                    .then(response => {
+                        Toastify({
+                            text: "Profil du restaurant mis à jour avec succès. 🎊",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                        }).showToast();
+                        console.log('Données mises à jour:', response.data);
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors de la mise à jour du profil:', error);
+                        Toastify({
+                            text: "Erreur lors de la mise à jour du profil. 😟",
+                            backgroundColor: "linear-gradient(to right, #FF5F6D, #FFC371)",
+                        }).showToast();
+                    });
+            });
+
+            // Activation du bouton Modifier
+            document.getElementById('edit-restaurant-btn').addEventListener('click', () => {
+                document.getElementById('nom').removeAttribute('readonly');
+                document.getElementById('tel').removeAttribute('readonly');
+                document.getElementById('adresse').removeAttribute('readonly');
+                document.getElementById('ville').disabled = false; // Activer le select
+                document.getElementById('type').removeAttribute('readonly');
+                document.getElementById('update-restaurant-btn').disabled = false; // Activer le bouton Mettre à jour
+                document.getElementById('edit-restaurant-btn').disabled = true; // Désactiver le bouton Modifier
+                Toastify({
+                    text: "Mode édition activé! ✏️",
+                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                }).showToast();
             });
         });
     </script>

@@ -1,33 +1,45 @@
 from django.urls import path
 from .views import (
-    CustomUserListCreateView,
-    CustomUserDetailView,
-    OffreListCreateView,
+    UserCreateView,
+    CandidatDetailView,
+    RestaurantDetailView,
+    AnnonceListCreateView,
+    CandidatureListCreateView,
+    PreferenceCandidatDetailView,
+    PreferenceRestaurantDetailView,
     OffreDetailView,
-    RecruiterListCreateView,
-    RecruiterDetailView,
-    CandidateListCreateView,
-    CandidateDetailView,
-    LoginView,
-
-
+    VilleListCreateView,
+   
+    
 )
 
 urlpatterns = [
-    path('users/', CustomUserListCreateView.as_view(), name='user-list-create'),
-    path('users/<int:pk>/', CustomUserDetailView.as_view(), name='user-detail'),
-    path('offres/', OffreListCreateView.as_view(), name='offre-list-create'),
-    path('offres/<int:pk>/', OffreDetailView.as_view(), name='offre-detail'),
-        # URLs pour les recruteurs
-    path('recruteurs/', RecruiterListCreateView.as_view(), name='recruiter-list'),
-    path('recruteurs/<int:pk>/', RecruiterDetailView.as_view(), name='recruiter-detail'),
-    
-    # URLs pour les candidats
-    path('candidats/', CandidateListCreateView.as_view(), name='candidate-list'),
-    path('candidats/<int:pk>/', CandidateDetailView.as_view(), name='candidate-detail'),
-
-     path('login/', LoginView.as_view(), name='login'),
-
+    # Route pour créer un utilisateur (candidat ou restaurant)
+    path('users/', UserCreateView.as_view(), name='user_create'),
    
-]
+    # Routes pour les candidats
+    path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
 
+    # Routes pour les restaurants
+    path('restaurants/<int:pk>/', RestaurantDetailView.as_view(), name='restaurant-detail'),
+
+    # Routes pour gérer les annonces
+    path('annonces/', AnnonceListCreateView.as_view(), name='annonce_create'),
+    
+
+    # Routes pour gérer les candidatures
+    path('candidatures/', CandidatureListCreateView.as_view(), name='candidature-list-create'),
+
+    # Routes pour récupérer et mettre à jour les préférences d'un candidat
+    path('candidats/preferences/<int:pk>/', PreferenceCandidatDetailView.as_view(), name='preference-candidat-detail'),
+
+    # Routes pour récupérer et mettre à jour les préférences d'un restaurant
+    path('restaurants/preferences/<int:pk>/', PreferenceRestaurantDetailView.as_view(), name='preference-restaurant-detail'),
+
+    # Routes pour gérer les offres
+    path('offres/<int:pk>/', OffreDetailView.as_view(), name='offre-detail'),
+    #  Route pour les villes
+    path('villes/', VilleListCreateView.as_view(), name='ville-list-create'),
+    
+
+]

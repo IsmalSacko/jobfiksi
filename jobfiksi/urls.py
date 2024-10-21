@@ -16,10 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from rest_framework.authtoken.views import obtain_auth_token
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.views import obtain_auth_token
 from django.urls import path, include
-from jobfiksi_api.views import login_view, profile_view, register_view, UserTypeList
+from jobfiksi_api.views import (
+    LoginView, LogoutView, 
+    profileDetail, 
+    UserCreateView, 
+    AnnonceView, 
+    AnnonceDetailView, 
+    PostulerAnnonceView,
+    home
+    )
+
 
 
 
@@ -29,10 +36,18 @@ urlpatterns = [
     path('api/', include('jobfiksi_api.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('login/', login_view, name='login'),
-    path('profile/', profile_view, name='profile'),
-    path('register/', register_view, name='register'),
-    path('api/user-types/', UserTypeList.as_view(), name='user-types'),
+    path('api-auth/login/', include('rest_framework.urls', namespace='rest_framework')),
+        # Route pour se connecter
+     path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path(('profile/restaurant/'), profileDetail, name='profile-detail'),
+    path('users/', UserCreateView.as_view(), name='user_create'),
+    path('annonces/', AnnonceView , name='annonce_create'),
+    path('annonces/<int:pk>/', AnnonceDetailView.as_view(), name='annonce_detail'),
+    path('annonces/<int:pk>/postuler/', PostulerAnnonceView.as_view(), name='postuler_annonce'),
+    path('home/', home , name='home'),
+
+   
   
   
 ]

@@ -24,6 +24,7 @@
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
             <button type="submit" class="btn btn-primary">Se connecter</button>
+            <p class="mt-3">Pas encore de compte ? <a href="{% url 'user_create' %}">Inscrivez-vous</a></p>
         </form>
         <div id="loginError" class="alert alert-danger mt-3" style="display:none;"></div>
     </div>
@@ -54,10 +55,22 @@
                     }
                 })
                 .then(function(response) {
+                    // Récupérer le token de la réponse
+                    const token = response.data.token; 
+                    const redirectUrl = response.data.redirect_url; // Récupérer l'URL de redirection
+
+                    // Stocker le token dans localStorage
+                    localStorage.setItem('token', token); 
+
                     // Affiche une notification de succès avec Toastr
-                    toastr.success('Connexion réussie ! Redirection en cours...');
+                    toastr.success('Connexion réussie ! Bienvenue', 'Succès', {
+                        timeOut: 2000,
+                        progressBar: true
+                    });
+                    
                     setTimeout(function() {
-                        window.location.href = '/profile/'; // Redirige vers la page de profil après connexion
+                        // Redirection vers l'URL fournie par le backend
+                        window.location.href = redirectUrl;
                     }, 2000); // Délai pour afficher le message avant la redirection
                 })
                 .catch(function(error) {

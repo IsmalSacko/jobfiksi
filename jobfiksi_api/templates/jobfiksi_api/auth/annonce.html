@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Publier une Annonce</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Toastr CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2>Publier une Annonce</h2>
+    <form id="annonceForm">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="titre">Titre de l'annonce</label>
+            <input type="text" class="form-control" id="titre" name="titre" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="type_contrat">Type de contrat</label>
+            <select class="form-control" id="type_contrat" name="type_contrat" required>
+                <option value="CDI">CDI</option>
+                <option value="CDD">CDD</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="salaire">Salaire</label>
+            <input type="number" class="form-control" id="salaire" name="salaire" step="0.01" placeholder="Ex: 2000.00">
+        </div>
+
+        <div class="form-group">
+            <label for="temps_travail">Temps de travail</label>
+            <select class="form-control" id="temps_travail" name="temps_travail" required>
+                <option value="Plein">Temps plein</option>
+                <option value="Partiel">Temps partiel</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="statut">Statut de l'annonce</label>
+            <select class="form-control" id="statut" name="statut" required>
+                <option value="Urgent">Urgent</option>
+                <option value="Non Urgent">Non Urgent</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Publier l'annonce</button>
+    </form>
+</div>
+
+<!-- jQuery, Bootstrap JS, Axios, and Toastr JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+    // Gestionnaire de soumission du formulaire
+    document.getElementById('annonceForm').addEventListener('submit', function (e) {
+        e.preventDefault(); // Empêche le rechargement de la page
+        // Charger le token d'authentification depuis localStorage
+        const token = localStorage.getItem('token');
+        // Récupère les données du formulaire
+        const formData = {
+            titre: document.getElementById('titre').value,
+            description: document.getElementById('description').value,
+            type_contrat: document.getElementById('type_contrat').value,
+            salaire: document.getElementById('salaire').value,
+            temps_travail: document.getElementById('temps_travail').value,
+            statut: document.getElementById('statut').value,
+        };
+
+        // Envoie de la requête POST avec Axios
+        axios.post('http://localhost:8000/api/annonces/', formData, {
+            headers: {
+                'Authorization': 'Token ' + localStorage.getItem('token'),
+                'Content-Type': 'application/json',
+                
+                
+                
+            }
+        })
+        .then(function (response) {
+            // Si la requête est réussie, affiche une notification de succès
+            toastr.success('Annonce publiée avec succès 💚👍💚!', 'Succès');
+            document.getElementById('annonceForm').reset(); // Réinitialise le formulaire
+                // Redirige l'utilisateur vers /home/
+                setTimeout(() => {
+                window.location.href = '/home/';
+            }, 2000);
+        })
+        .catch(function (error) {
+            // En cas d'erreur, affiche une notification d'erreur
+            if (error.response) {
+                toastr.error('Erreur lors de la publication de l\'annonce.', 'Erreur');
+                console.error('Erreur:', error.response.data);
+            } else {
+                toastr.error('Erreur réseau, veuillez réessayer plus tard.', 'Erreur');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

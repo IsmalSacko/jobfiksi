@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page d'Accueil - Annonces</title>
+    <!-- Inclure les liens CSS ici -->
+     <!-- Bootstrap CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+<!-- Toastr CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
+</head>
+<body>
+
+<div class="container mt-5">
+    <h1 class="text-center">Liste des Annonces</h1>
+    <div id="annonces" class="row mt-4"></div>
+</div>
+
+<!-- Inclure les scripts ici -->
+ <!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+<!-- Axios -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<!-- Toastr JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+    const apiUrl = 'http://127.0.0.1:8000/api/annonces/'; // Remplacez par l'URL de votre API
+        // Fonction pour formater la date
+        function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', options);
+    }
+    // Fonction pour afficher les annonces
+    function afficherAnnonces() {
+        axios.get(apiUrl)
+            .then(response => {
+                const annonces = response.data;
+                const annoncesContainer = document.getElementById('annonces');
+                annoncesContainer.innerHTML = '';
+    // Fonction pour formater la date
+    function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR', options);
+    }
+
+                annonces.forEach(annonce => {
+                    const ville = annonce.ville || 'LYON (69)';
+                    const annonceCard = `
+                        <div class="col-md-4 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${annonce.titre}</h5>
+                                    <p class="card-text"><strong>Créé par: ${annonce.created_by} le ${formatDate(annonce.date_publication)}</strong></p>
+                                    <p class="card-text"><strong>Ville:</strong> ${ville}</p>
+                                   
+                                    <p class="card-text">${annonce.description}</p>
+                                    <p class="card-text"><strong>Type de contrat:</strong> ${annonce.type_contrat}</p>
+                                    <p class="card-text"><strong>Salaire:</strong> ${annonce.salaire} €</p>
+                                    <p class="card-text"><strong>Statut:</strong> ${annonce.statut}</p>
+                                    <button class="btn btn-primary" onclick="postuler(${annonce.id})">Postuler</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    annoncesContainer.innerHTML += annonceCard;
+                });
+            })
+            .catch(error => {
+                console.error('Erreur lors de la récupération des annonces:', error);
+                toastr.error('Erreur lors de la récupération des annonces.');
+            });
+    }
+
+    // Fonction pour postuler à une annonce
+    function postuler(annonceId) {
+        // Ici vous pouvez ajouter la logique pour postuler à l'annonce
+        // Pour cet exemple, nous allons juste afficher une notification
+        toastr.success(`Vous avez postulé à l'annonce ID: ${annonceId}`);
+    }
+
+    // Appel de la fonction pour afficher les annonces
+    afficherAnnonces();
+</script>
+
+</body>
+</html>
