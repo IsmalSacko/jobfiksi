@@ -57,7 +57,7 @@
                 axios.defaults.headers.common['X-CSRFToken'] = document.querySelector('meta[name="csrf_token"]').content;
 
                 // Envoi de la requête Axios
-                axios.post('http://127.0.0.1:8000/api/users/', formData)
+                axios.post('/api/users/', formData)
                     .then(response => {
                         toastr.success('Inscription réussie ! Vous allez être redirigé.');
 

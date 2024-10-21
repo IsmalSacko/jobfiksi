@@ -82,7 +82,7 @@
         };
 
         // Envoie de la requête POST avec Axios
-        axios.post('http://localhost:8000/api/annonces/', formData, {
+        axios.post('/api/annonces/', formData, {
             headers: {
                 'Authorization': 'Token ' + localStorage.getItem('token'),
                 'Content-Type': 'application/json',
