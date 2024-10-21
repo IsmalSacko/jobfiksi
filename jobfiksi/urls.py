@@ -46,7 +46,7 @@ urlpatterns = [
     path('annonces/<int:pk>/', AnnonceDetailView.as_view(), name='annonce_detail'),
     path('annonces/<int:pk>/postuler/', PostulerAnnonceView.as_view(), name='postuler_annonce'),
     path('home/', home , name='home'),
-    path('users/', create_user, name='create_user'),
+    path('users/', create_user, name='create_user_view'),
 
 
    
