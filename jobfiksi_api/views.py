@@ -251,10 +251,10 @@ class LoginView(generics.GenericAPIView):
 class LogoutView(APIView):
     permission_classes = [permissions.AllowAny]
 
-    # def get(self, request):
-    #     if request.user.is_authenticated:
-    #         logout(request)
-    #     return redirect('login')  # Redirige toujours vers la page de connexion
+    def get(self, request):
+        if request.user.is_authenticated:
+            logout(request)
+        return redirect('login')  # Redirige toujours vers la page de connexion
     @csrf_exempt
     def post(self, request):
         if request.user.is_authenticated:
