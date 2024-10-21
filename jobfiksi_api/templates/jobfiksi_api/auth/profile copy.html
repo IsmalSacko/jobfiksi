@@ -86,7 +86,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userId = document.getElementById('user_id').value;
-            const apiUrl = 'http://127.0.0.1:8000/api/restaurants/' + userId + '/';
+            const apiUrl = '/api/restaurants/' + userId + '/';
     
             // Charger le token d'authentification depuis localStorage
             const token = localStorage.getItem('token');
