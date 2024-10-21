@@ -25,7 +25,7 @@ from jobfiksi_api.views import (
     AnnonceDetailView, 
     PostulerAnnonceView,
     home,
-    create_user
+    createCreateView
     )
 
 
@@ -34,19 +34,18 @@ from jobfiksi_api.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', home , name='home'),
     path('api/', include('jobfiksi_api.urls')),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-           # Route pour se connecter
+         
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path(('profile/restaurant/'), profileDetail, name='profile-detail'),
-    path('users/', UserCreateView.as_view(), name='user_create'),
+    path('users/', createCreateView , name='user_create_view'),
     path('annonces/', AnnonceView , name='annonce_create'),
     path('annonces/<int:pk>/', AnnonceDetailView.as_view(), name='annonce_detail'),
     path('annonces/<int:pk>/postuler/', PostulerAnnonceView.as_view(), name='postuler_annonce'),
-    path('home/', home , name='home'),
-    path('users/', create_user, name='create_user_view'),
 
 
    

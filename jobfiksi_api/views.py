@@ -262,7 +262,10 @@ class LogoutView(APIView):
         return redirect('/login/')  # Redirige toujours vers la page de connexion
 @csrf_exempt
 def profileDetail(request):
-    return render(request, 'jobfiksi_api/auth/profile.html')
+    user = request.user
+    user_type = user.user_type
+    print(user_type)
+    return render(request, 'jobfiksi_api/auth/profile.html', {'user': user, 'user_type': user_type})
 
 
 from rest_framework.views import APIView
@@ -299,5 +302,5 @@ class PostulerAnnonceView(APIView):
 def home(request):
     return render(request, 'jobfiksi_api/home.html')
 
-def create_user(request):
+def createCreateView(request):
     return render(request, 'jobfiksi_api/auth/register.html')

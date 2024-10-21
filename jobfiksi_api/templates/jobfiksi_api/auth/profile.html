@@ -20,11 +20,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/home/">Home</a>
+                        <a class="nav-link active" aria-current="page" href="/">Home</a>
                     </li>
                     {% if user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'profile-detail' %}">Profil</a>
+                            {% if user_type == 'restaurant' %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'annonce_create' %}">Créer une Annonce</a>
+                                </li>
+                            {% endif %}
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'logout' %}">Déconnexion</a>
@@ -111,7 +116,10 @@
                         document.getElementById('nom').value = data.nom || '';
                         document.getElementById('tel').value = data.tel || '';
                         document.getElementById('adresse').value = data.adresse || '';
-                        
+                        Toastify({
+                                text: "Données du restaurant chargées avec succès! 🎉",
+                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            }).showToast();   
                         if (data.ville) {
                             const villeSelect = document.getElementById('ville');
                             villeSelect.innerHTML = ''; // Réinitialiser le contenu
@@ -120,10 +128,7 @@
                             option.textContent = data.ville.nom; // Nom de la ville
                             villeSelect.appendChild(option);
                             villeSelect.value = data.ville.id; // Sélectionner la ville
-                            Toastify({
-                                text: "Données du restaurant chargées avec succès! 🎉",
-                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                            }).showToast();
+                            
                         }
 
                         document.getElementById('type').value = data.type || '';
