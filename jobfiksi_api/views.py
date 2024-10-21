@@ -259,7 +259,7 @@ class LogoutView(APIView):
     def post(self, request):
         if request.user.is_authenticated:
             logout(request)
-        return redirect('login')  # Redirige toujours vers la page de connexion
+        return redirect('/login/')  # Redirige toujours vers la page de connexion
 @csrf_exempt
 def profileDetail(request):
     return render(request, 'jobfiksi_api/auth/profile.html')
