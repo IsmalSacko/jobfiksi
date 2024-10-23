@@ -10,7 +10,7 @@ class VilleAdmin(admin.ModelAdmin):
 # Enregistrement du modèle CustomUser
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'user_type', 'is_staff', 'is_active')  # Afficher ces champs dans la liste
+    list_display = ('username', 'email', 'user_type', 'is_staff', 'is_superuser', 'is_active')  # Afficher ces champs dans la liste
     list_filter = ('user_type', 'is_staff', 'is_active')  # Ajouter des filtres sur ces champs
     search_fields = ('username', 'email')  # Ajouter une barre de recherche
 
