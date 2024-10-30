@@ -4,15 +4,17 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 
 
-# Modèle de la ville
-class Ville(models.Model):
-    nom = models.CharField(max_length=100)  # Nom de la ville
-    code_postal = models.CharField(max_length=10)  # Code postal de la ville
+class Adresse(models.Model):
+    rue = models.CharField(max_length=255)
+    ville = models.CharField(max_length=100)
+    code_postal = models.CharField(max_length=10)
+    pays = models.CharField(max_length=100)
+
+    # Si vous souhaitez lier l'adresse à un utilisateur ou à une annonce
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='adresses')
 
     def __str__(self):
-        # Renvoyer le nom de la ville et les deux premiers chiffres du code postal
-        return f"{self.nom} ({self.code_postal[:2]})"
-
+        return f"{self.rue}, {self.ville}, {self.code_postal}, {self.pays}"
 # Modèle CustomUser
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = [
@@ -33,8 +35,7 @@ class Candidat(models.Model):
     prenom = models.CharField(max_length=100)
     tel = models.CharField(max_length=20, null=True, blank=True)
     date_naissance = models.DateField(null=True, blank=True)
-    adresse = models.CharField(max_length=255, null=True, blank=True)
-    ville = models.ForeignKey(Ville, on_delete=models.SET_NULL, null=True, blank=True, related_name='candidats')
+    adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
     cv = models.FileField(upload_to='cvs/', null=True, blank=True)
     niveau_etude = models.CharField(max_length=100, null=True, blank=True)
     experience = models.TextField(null=True, blank=True)
@@ -47,45 +48,13 @@ class Restaurant(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='restaurant_profile')
     nom = models.CharField(max_length=100)
     tel = models.CharField(max_length=20, null=True, blank=True)
-    adresse = models.CharField(max_length=255)
-    ville = models.ForeignKey(Ville, on_delete=models.SET_NULL, null=True, blank=True, related_name='restaurants')
+    adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
     type = models.CharField(max_length=100)
 
     def __str__(self):
         return self.nom
 
-# Modèle Annonce
-class Annonce(models.Model):
-    CDI = 'CDI'
-    CDD = 'CDD'
-    TYPE_CONTRAT_CHOICES = [
-        (CDI, 'CDI'),
-        (CDD, 'CDD'),
-    ]
 
-    TEMPS_PARTIEL = 'Partiel'
-    TEMPS_PLEIN = 'Plein'
-    TEMPS_TRAVAIL_CHOICES = [
-        (TEMPS_PARTIEL, 'Temps partiel'),
-        (TEMPS_PLEIN, 'Temps plein'),
-    ]
-
-    URGENT = 'Urgent'
-    NON_URGENT = 'Non Urgent'
-    STATUT_CHOICES = [
-        (URGENT, 'Urgent'),
-        (NON_URGENT, 'Non Urgent'),
-    ]
-
-    titre = models.CharField(max_length=150)
-    description = models.TextField(null=True, blank=True)
-    date_publication = models.DateTimeField(auto_now_add=True)
-    type_contrat = models.CharField(max_length=3, choices=TYPE_CONTRAT_CHOICES)
-    salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    temps_travail = models.CharField(max_length=10, choices=TEMPS_TRAVAIL_CHOICES)
-    statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
-    from django.conf import settings
-from django.db import models
 
 class Annonce(models.Model):
     CDI = 'CDI'
@@ -121,9 +90,6 @@ class Annonce(models.Model):
     def __str__(self):
         return self.titre
 
-
-    def __str__(self):
-        return self.titre
 
 # Modèle Candidature
 class Candidature(models.Model):

@@ -1,6 +1,5 @@
 from django.urls import path
 from .views import (
-    UserCreateView,
     CandidatDetailView,
     RestaurantDetailView,
     AnnonceListCreateView,
@@ -8,16 +7,23 @@ from .views import (
     PreferenceCandidatDetailView,
     PreferenceRestaurantDetailView,
     OffreDetailView,
-    VilleListCreateView,
+    UserListCreateRetrieveView,
+    AdresseListCreateView,
+    UserDetailView,
+   listCandidatesView
+
    
     
 )
 
+
 urlpatterns = [
     # Route pour créer un utilisateur (candidat ou restaurant)
-    path('users/', UserCreateView.as_view(), name='user_create'),
-   
-    # Routes pour les candidats
+    path('users/', UserListCreateRetrieveView.as_view(), name='user_create'),
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
+
+    path('candidats/', listCandidatesView.as_view(), name='candidat-list'),
+    # Routes pour un candidat
     path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
 
     # Routes pour les restaurants
@@ -25,6 +31,7 @@ urlpatterns = [
 
     # Routes pour gérer les annonces
     path('annonces/', AnnonceListCreateView.as_view(), name='annonce_create'),
+    path('annonces/<int:pk>/', AnnonceListCreateView.as_view(), name='annonce-detail'),
     
 
     # Routes pour gérer les candidatures
@@ -39,7 +46,7 @@ urlpatterns = [
     # Routes pour gérer les offres
     path('offres/<int:pk>/', OffreDetailView.as_view(), name='offre-detail'),
     #  Route pour les villes
-    path('villes/', VilleListCreateView.as_view(), name='ville-list-create'),
+    path('adresse/', AdresseListCreateView.as_view(), name='adresse-create'),
     
 
 ]

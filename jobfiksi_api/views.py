@@ -4,12 +4,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect
 from rest_framework import serializers
 from django.urls import reverse
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from rest_framework import status
 from django.contrib.auth import authenticate, login, logout
 from .serializers import LoginSerializer
+from django.contrib.auth import get_user_model
 from rest_framework.authtoken.models import Token
-from .models import User, Candidat, Restaurant, Ville,Annonce, Candidature, PreferenceCandidat, PreferenceRestaurant, Offre, CustomUser
+from .models import User, Candidat, Restaurant, Adresse,Annonce, Candidature, PreferenceCandidat, PreferenceRestaurant, Offre, CustomUser
 from .serializers import (
     UserCreateSerializer,
     CandidatSerializer,
@@ -19,51 +21,61 @@ from .serializers import (
     PreferenceCandidatSerializer,
     PreferenceRestaurantSerializer,
     OffreSerializer,
-    LoginSerializer,
-    VilleSerializer
+    LoginSerializer,                    
+    AdresseSerializer
 )
 
-class UserCreateView(generics.CreateAPIView):
+
+User = get_user_model()
+
+class AdresseListCreateView(generics.ListCreateAPIView):
+    queryset = Adresse.objects.all()
+    serializer_class = AdresseSerializer
+    permission_classes = [permissions.AllowAny] 
+
+class UserListCreateRetrieveView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
     permission_classes = [permissions.AllowAny]
 
-    # def get(self, request, *args, **kwargs):
-    #     return render(request, 'jobfiksi_api/auth/register.html')
+    def get(self, request, *args, **kwargs):
+        # Si 'pk' est dans kwargs, récupérer l'utilisateur spécifique, sinon, renvoyer la liste des utilisateurs
+        if 'pk' in kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        return self.list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        
         if serializer.is_valid():
             user = serializer.save()
 
-            # Vérifiez si un profil existe déjà pour cet utilisateur
+            # Création du profil en fonction du type d'utilisateur
             if user.user_type == 'restaurant':
-                restaurant_profile, created = Restaurant.objects.get_or_create(user=user)
-
-                if not created:
-                    # Mettre à jour le profil existant si nécessaire
-                    restaurant_profile.nom = user.username  # Mettez à jour le nom si nécessaire
-                    restaurant_profile.adresse = 'Adresse par défaut'  # Mettez à jour l'adresse si nécessaire
-                    restaurant_profile.tel = '0123456789'  # Mettez à jour le téléphone si nécessaire
-                    restaurant_profile.type = CustomUser.objects.get(id=user.id).user_type  # Mettez à jour le type si nécessaire
-                    restaurant_profile.save()
-                
+                Restaurant.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'nom': user.username,
+                        'adresse': Adresse.objects.first(),
+                        'tel': '0123456789',
+                        'type': user.user_type
+                    }
+                )
             elif user.user_type == 'candidat':
-                candidat_profile, created = Candidat.objects.get_or_create(user=user)
+                Candidat.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'nom': user.username,
+                        'tel': '0123456789',
+                        'adresse': Adresse.objects.first(),
+                        'date_naissance': '2000-01-01',
+                        'niveau_etude': "Niveau d'étude par défaut",
+                        'experience': "Expérience par défaut",
+                        'user_type': user.user_type
+                    }
+                )
 
-                if not created:
-                    # Mettre à jour le profil existant si nécessaire
-                    candidat_profile.nom = user.username  # Mettez à jour le nom si nécessaire
-                    candidat_profile.tel = '0123456789'  # Mettez à jour le téléphone si nécessaire
-                    candidat_profile.adresse = 'Adresse par défaut'  # Mettez à jour l'adresse si nécessaire
-                    candidat_profile.date_naissance = '2000-01-01'  # Mettez à jour la date de naissance si nécessaire
-                    candidat_profile.niveau_etude = 'Niveau d\'étude par défaut'  # Mettez à jour le niveau d'étude si nécessaire
-                    candidat_profile.experience = 'Expérience par défaut'  # Mettez à jour l'expérience si nécessaire
-                    candidat_profile.ville = Ville.objects.first()  # Mettez à jour la ville si nécessaire
-                    candidat_profile.user_type = CustomUser.objects.get(id=user.id).user_type  # Mettez à jour le type si nécessaire
-                    candidat_profile.save()
-
-            login(request, user)
+            # Créer et retourner le token
             token, _ = Token.objects.get_or_create(user=user)
 
             response_data = {
@@ -74,20 +86,78 @@ class UserCreateView(generics.CreateAPIView):
                     'user_type': user.user_type,
                 },
                 'token': token.key,
-                'redirect_url': '/login/',
+                'redirect_url': '/api/users/' + str(user.id) + '/',
             }
-
             return Response(response_data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Vue pour récupérer les détails d'un utilisateur
+class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        except serializers.ValidationError as e:
+            print(serializer.errors)  # Affiche les erreurs de validation dans la console
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        user = self.get_object()
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+ 
     
 # Vue pour récupérer les détails d'un candidat
 class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Candidat.objects.all()
     serializer_class = CandidatSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+   
+    def retrieve(self, request, *args, **kwargs):
+        candidat = self.get_object()
+        serializer = self.get_serializer(candidat)
+        return Response(serializer.data)
+        
+    
+    def update(self, request, *args, **kwargs):
+        candidat = self.get_object()
+        # Passer explicitement le contexte lors de l'initialisation du serializer
+        serializer = self.get_serializer(candidat, data=request.data, partial=True, context={'request': request})
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        except serializers.ValidationError as e:
+            print(serializer.errors)  # Affiche les erreurs de validation dans la console
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        
+ # Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
+class listCandidatesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        if request.user.user_type == 'recruteur' or request.user.is_staff or request.user.is_superuser:
+            candidats = Candidat.objects.all()
+            serializer = CandidatSerializer(candidats, many=True)
+            return Response(serializer.data)
+        else:
+            raise PermissionDenied("Vous n'êtes pas autorisé à voir cette liste.")
+    
 
 
 
@@ -113,39 +183,25 @@ class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
 
-class VilleListCreateView(generics.ListCreateAPIView):
-    serializer_class = VilleSerializer
-    
 
-    def get_queryset(self):
-        # Récupérer toutes les villes
-        villes = list(Ville.objects.all())
-        
-        # Récupérer la ville de l'utilisateur connecté
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'ville'):
-            ville_utilisateur = self.request.user.ville
-        else:
-            ville_utilisateur = None
-
-        # Trier les villes en mettant la ville de l'utilisateur en premier
-        if ville_utilisateur in villes:
-            villes.remove(ville_utilisateur)
-            villes.insert(0, ville_utilisateur)
-
-        return villes
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
+from rest_framework import generics, permissions
+from .models import Annonce
+from .serializers import AnnonceSerializer
 
 # Vue pour gérer les annonces
 class AnnonceListCreateView(generics.ListCreateAPIView):
     queryset = Annonce.objects.all()
     serializer_class = AnnonceSerializer
-    permission_classes = [permissions.AllowAny]  # Seuls les utilisateurs authentifiés peuvent créer
+
+    # Permission pour permettre à tout le monde de voir la liste, mais seuls les utilisateurs authentifiés peuvent créer
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.IsAuthenticated()]  # Authentification requise pour la création
+        return super().get_permissions()  # Autoriser l'accès à la liste pour tout le monde
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)  # L'utilisateur connecté qui crée l'annonce
+
 
 class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Annonce.objects.all()
@@ -210,12 +266,14 @@ class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 from django.views.decorators.csrf import csrf_exempt
 
+from django.contrib.auth import authenticate, login, logout
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from django.views.decorators.csrf import csrf_exempt
+
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
-
-    def get(self, request, *args, **kwargs):
-        return render(request, 'jobfiksi_api/auth/login.html')
 
     @csrf_exempt  # Désactiver la vérification CSRF pour cette méthode
     def post(self, request):
@@ -226,25 +284,35 @@ class LoginView(generics.GenericAPIView):
         if request.user.is_authenticated:
             logout(request)
 
+        # Authentifier l'utilisateur
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             # Connecter l'utilisateur et créer la session
             login(request, user)
-            token, _ = Token.objects.get_or_create(user=user)
 
-            # Déterminer l'URL de redirection
-            redirect_url = '/profile/candidate/' if user.user_type == 'candidate' else '/profile/restaurant/'
+            # Créer une réponse de base sans token
+            response_data = {
+                'user': {
+                    'username': user.username,
+                    'email': user.email,
+                    'user_type': user.user_type,
+                    'token': user.auth_token.key,
+                },
+            }
 
-            return Response({
-                'token': token.key,
-                'user': {'username': user.username},
-                'redirect_url': redirect_url
-            }, status=status.HTTP_200_OK)
+            # Vérifiez si le token est nécessaire et ajoutez-le si besoin
+            include_token = request.data.get('include_token', False)  # optionnel dans la requête
+            if include_token:
+                token, _ = Token.objects.get_or_create(user=user)
+                response_data['token'] = token.key
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         # Journaliser l'échec d'authentification
         print(f"Authentication failed for username: {username}")
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 
     
@@ -260,47 +328,3 @@ class LogoutView(APIView):
         if request.user.is_authenticated:
             logout(request)
         return redirect('/login/')  # Redirige toujours vers la page de connexion
-@csrf_exempt
-def profileDetail(request):
-    user = request.user
-    user_type = user.user_type
-    print(user_type)
-    return render(request, 'jobfiksi_api/auth/profile.html', {'user': user, 'user_type': user_type})
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Candidature, Annonce
-from .serializers import CandidatureSerializer
-
-class PostulerAnnonceView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request, pk, *args, **kwargs):
-        """
-        Seuls les candidats peuvent postuler à une annonce.
-        """
-        if request.user.user_type == 'candidat':
-            try:
-                annonce = Annonce.objects.get(pk=pk)
-                candidature_data = {
-                    'user': request.user.id,
-                    'annonce': annonce.id,
-                }
-                serializer = CandidatureSerializer(data=candidature_data)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data, status=status.HTTP_201_CREATED)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            except Annonce.DoesNotExist:
-                return Response({'detail': 'Annonce non trouvée.'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            return Response({'detail': 'Vous devez être candidat pour postuler à une annonce.'}, status=status.HTTP_403_FORBIDDEN)
-
-
-def home(request):
-    return render(request, 'jobfiksi_api/home.html')
-
-def createCreateView(request):
-    return render(request, 'jobfiksi_api/auth/register.html')

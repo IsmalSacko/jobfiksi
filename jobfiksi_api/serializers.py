@@ -1,12 +1,16 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Candidat, Restaurant, Annonce, Candidature, PreferenceCandidat, PreferenceRestaurant, Offre, Ville
+from .models import Candidat, Restaurant, Annonce, Candidature, Adresse, PreferenceCandidat, PreferenceRestaurant, Offre
 
-from rest_framework import serializers
-class VilleSerializer(serializers.ModelSerializer):
+class AdresseSerializer(serializers.ModelSerializer):
+    #created_by = serializers.ReadOnlyField(source='created_by.username')
+    rue = serializers.CharField(required=False, allow_blank=True)
+    ville = serializers.CharField(required=False, allow_blank=True)
+    code_postal = serializers.CharField(required=False, allow_blank=True)
+    pays = serializers.CharField(required=False, allow_blank=True)
     class Meta:
-        model = Ville
-        fields = ['nom']
+        model = Adresse
+        fields = ['rue', 'ville', 'code_postal', 'pays']
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
@@ -39,17 +43,81 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 class CandidatSerializer(serializers.ModelSerializer):
-    ville = serializers.CharField(source='ville.nom', read_only=True)
+    adresse = serializers.PrimaryKeyRelatedField(queryset=Adresse.objects.all(), required=False)
+    adresse_data = AdresseSerializer(write_only=True, required=False)
+    type = serializers.CharField(read_only=True)
     class Meta:
         model = Candidat
-        fields = ['nom', 'prenom', 'tel', 'date_naissance', 'adresse', 'ville', 'cv', 'niveau_etude', 'experience']
+        fields = ['nom', 'prenom', 'tel', 'date_naissance', 'adresse', 'adresse', 'cv', 'niveau_etude', 'experience', 'adresse_data', 'type']
+
+    def update(self, instance, validated_data):
+        adresse_data = validated_data.pop('adresse_data', None) # Récupérer les données de l'adresse
+
+        # Mettre à jour les champs du candidat
+        instance.nom = validated_data.get('nom', instance.nom)
+        instance.prenom = validated_data.get('prenom', instance.prenom)
+        instance.tel = validated_data.get('tel', instance.tel)
+        instance.date_naissance = validated_data.get('date_naissance', instance.date_naissance)
+        instance.cv = validated_data.get('cv', instance.cv)
+        instance.niveau_etude = validated_data.get('niveau_etude', instance.niveau_etude)
+        instance.experience = validated_data.get('experience', instance.experience)
+        instance.save()
+
+        # Mettre à jour ou créer une nouvelle adresse seulement si des champs sont fournis
+        if adresse_data and any(adresse_data.values()):
+            adresse = instance.adresse
+            if adresse:
+                # Mettre à jour l'adresse existante
+                adresse.rue = adresse_data.get('rue', adresse.rue)
+                adresse.ville = adresse_data.get('ville', adresse.ville)
+                adresse.code_postal = adresse_data.get('code_postal', adresse.code_postal)
+                adresse.pays = adresse_data.get('pays', adresse.pays)
+                adresse.save()
+            else:
+                # Créer une nouvelle adresse et lier automatiquement l'utilisateur connecté
+                adresse = Adresse.objects.create(**adresse_data, created_by=self.context['request'].user)
+                instance.adresse = adresse
+                instance.save()
+
+        return instance
+
 
 class RestaurantSerializer(serializers.ModelSerializer):
-    #ville = VilleSerializer(read_only=True)
-    ville = serializers.CharField(source='ville.nom', read_only=True)
+    adresse = serializers.PrimaryKeyRelatedField(queryset=Adresse.objects.all(), allow_null=True, required=False)
+    adresse_data = AdresseSerializer(write_only=True, required=False)
+    type = serializers.CharField(read_only=True)
+
     class Meta:
         model = Restaurant
-        fields = ['nom', 'tel', 'adresse', 'ville', 'type']
+        fields = ['nom', 'tel', 'adresse', 'adresse_data', 'type']
+
+    def update(self, instance, validated_data):
+        adresse_data = validated_data.pop('adresse_data', None) # Récupérer les données de l'adresse
+       
+
+        # Mettre à jour les champs du restaurant
+        instance.nom = validated_data.get('nom', instance.nom)
+        instance.tel = validated_data.get('tel', instance.tel)
+        instance.save()
+
+        # Mettre à jour ou créer une nouvelle adresse seulement si des champs sont fournis
+        if adresse_data and any(adresse_data.values()):
+            adresse = instance.adresse
+            if adresse:
+                # Mettre à jour l'adresse existante
+                adresse.rue = adresse_data.get('rue', adresse.rue)
+                adresse.ville = adresse_data.get('ville', adresse.ville)
+                adresse.code_postal = adresse_data.get('code_postal', adresse.code_postal)
+                adresse.pays = adresse_data.get('pays', adresse.pays)
+                adresse.save()
+            else:
+                # Créer une nouvelle adresse et lier automatiquement l'utilisateur connecté
+                adresse = Adresse.objects.create(**adresse_data, created_by=self.context['request'].user)
+                instance.adresse = adresse
+                instance.save()
+
+        return instance
+
 
 class AnnonceSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
