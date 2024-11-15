@@ -91,7 +91,7 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def retrieve(self, request, *args, **kwargs):
         user = self.get_object()
