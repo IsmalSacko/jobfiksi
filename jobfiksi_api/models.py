@@ -15,6 +15,8 @@ class Adresse(models.Model):
 
     def __str__(self):
         return f"{self.rue}, {self.ville}, {self.code_postal}, {self.pays}"
+
+
 # Modèle CustomUser
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = [
@@ -23,37 +25,73 @@ class CustomUser(AbstractUser):
     ]
     user_type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES)
 
+
 # Récupérer le modèle CustomUser
 User = get_user_model()
 
+
 # Modèle Candidat
 class Candidat(models.Model):
-   
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='candidat_profile')
-    
-    nom = models.CharField(max_length=100)
-    prenom = models.CharField(max_length=100)
+
+    nom = models.CharField(max_length=100, null=True, blank=True)
+    prenom = models.CharField(max_length=100, null=True, blank=True)
     tel = models.CharField(max_length=20, null=True, blank=True)
     date_naissance = models.DateField(null=True, blank=True)
-    adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
+    # adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
+    num_et_rue = models.CharField(max_length=255, null=True, blank=True)
+    ville = models.CharField(max_length=100, null=True, blank=True)
+    code_postal = models.CharField(max_length=10, null=True, blank=True)
+    pays = models.CharField(max_length=100, null=True, blank=True)
+    iban = models.CharField(max_length=27, null=True, blank=True)
+    secu_sociale = models.CharField(max_length=15, null=True, blank=True)
     cv = models.FileField(upload_to='cvs/', null=True, blank=True)
+    lettre_motivation = models.FileField(upload_to='lettres_motivation/', null=True, blank=True)
+    autres_documents = models.FileField(upload_to='autres_documents/', null=True, blank=True)
+    image = models.ImageField(upload_to='images/candidat', null=True, blank=True)
+    genre = models.CharField(max_length=10, null=True, blank=True)
+    disponibilite = models.TextField(null=True, blank=True)
+    plage_horaire = models.CharField(max_length=255, null=True, blank=True)
     niveau_etude = models.CharField(max_length=100, null=True, blank=True)
     experience = models.TextField(null=True, blank=True)
+    compentence = models.TextField(null=True, blank=True)
+    formation = models.CharField(max_length=255, blank=True, null=True)
+    etablissement = models.CharField(max_length=100, null=True, blank=True)
+    date_debut = models.DateField(blank=True, null=True)
+    date_fin = models.DateField(blank=True, null=True)
+    langues_parlees = models.CharField(max_length=255, null=True, blank=True)
+    type_de_poste_recherche = models.CharField(max_length=100, null=True, blank=True)
+    type_de_contrat_recherche = models.CharField(max_length=100, null=True, blank=True)
+    preference_lieu = models.CharField(max_length=100, null=True, blank=True)
+    # preférence_salaire en euros
+    preference_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # notification par mail oui ou non
+    notification_mail = models.BooleanField(default=False)
+    # Souhaitez-vous rendre votre profil public ?
+    profil_public = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.nom} {self.prenom}"
+        return f"{self.nom} {self.prenom} {self.tel} {self.ville}"
+
 
 # Modèle Restaurant
 class Restaurant(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='restaurant_profile')
     nom = models.CharField(max_length=100)
     tel = models.CharField(max_length=20, null=True, blank=True)
-    adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
+    # adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
     type = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='images/restaurant', null=True, blank=True)
+    num_et_rue = models.CharField(max_length=255, null=True, blank=True)
+    ville = models.CharField(max_length=100, null=True, blank=True)
+    code_postal = models.CharField(max_length=10, null=True, blank=True)
+    pays = models.CharField(max_length=100, null=True, blank=True)
+    site_web = models.URLField(null=True, blank=True)
+    notification_mail = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.nom
-
+        # return tous les champs du restaurant
+        return f"{self.nom} {self.tel} {self.type} {self.site_web}"
 
 
 class Annonce(models.Model):
@@ -85,7 +123,8 @@ class Annonce(models.Model):
     salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     temps_travail = models.CharField(max_length=10, choices=TEMPS_TRAVAIL_CHOICES)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='annonces')  # L'utilisateur qui a créé l'annonce
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                   related_name='annonces')  # L'utilisateur qui a créé l'annonce
 
     def __str__(self):
         return self.titre
@@ -99,6 +138,7 @@ class Candidature(models.Model):
 
     def __str__(self):
         return f"Candidature de {self.candidat} pour {self.annonce}"
+
 
 # Modèle PreferenceCandidat
 class PreferenceCandidat(models.Model):
@@ -114,6 +154,7 @@ class PreferenceCandidat(models.Model):
     def __str__(self):
         return f"Préférences de {self.candidat}"
 
+
 # Modèle PreferenceRestaurant
 class PreferenceRestaurant(models.Model):
     restaurant = models.OneToOneField(Restaurant, on_delete=models.CASCADE, related_name='preference')
@@ -124,6 +165,7 @@ class PreferenceRestaurant(models.Model):
 
     def __str__(self):
         return f"Préférences pour {self.restaurant}"
+
 
 # Modèle Offre
 class Offre(models.Model):

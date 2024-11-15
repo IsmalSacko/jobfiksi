@@ -1,37 +1,33 @@
-from rest_framework import generics, permissions
-from rest_framework.response import Response
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect
+from rest_framework import generics, permissions
 from rest_framework import serializers
-from django.urls import reverse
+from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
-from rest_framework import status
-from django.contrib.auth import authenticate, login, logout
-from .serializers import LoginSerializer
-from django.contrib.auth import get_user_model
-from rest_framework.authtoken.models import Token
-from .models import User, Candidat, Restaurant, Adresse,Annonce, Candidature, PreferenceCandidat, PreferenceRestaurant, Offre, CustomUser
+
+from .models import Candidat, Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
+    Offre
 from .serializers import (
     UserCreateSerializer,
     CandidatSerializer,
     RestaurantSerializer,
-    AnnonceSerializer,
     CandidatureSerializer,
     PreferenceCandidatSerializer,
     PreferenceRestaurantSerializer,
     OffreSerializer,
-    LoginSerializer,                    
+    LoginSerializer,
     AdresseSerializer
 )
 
-
 User = get_user_model()
+
 
 class AdresseListCreateView(generics.ListCreateAPIView):
     queryset = Adresse.objects.all()
     serializer_class = AdresseSerializer
-    permission_classes = [permissions.AllowAny] 
+    permission_classes = [permissions.AllowAny]
+
 
 class UserListCreateRetrieveView(generics.ListCreateAPIView):
     queryset = User.objects.all()
@@ -46,7 +42,7 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        
+
         if serializer.is_valid():
             user = serializer.save()
 
@@ -56,7 +52,6 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
                     user=user,
                     defaults={
                         'nom': user.username,
-                        'adresse': Adresse.objects.first(),
                         'tel': '0123456789',
                         'type': user.user_type
                     }
@@ -67,7 +62,6 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
                     defaults={
                         'nom': user.username,
                         'tel': '0123456789',
-                        'adresse': Adresse.objects.first(),
                         'date_naissance': '2000-01-01',
                         'niveau_etude': "Niveau d'étude par défaut",
                         'experience': "Expérience par défaut",
@@ -92,6 +86,7 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 # Vue pour récupérer les détails d'un utilisateur
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
@@ -100,12 +95,27 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         user = self.get_object()
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
 
+        # Serializer par défaut pour les informations de base de l'utilisateur
+        user_data = self.get_serializer(user).data
+
+        # Ajoutez des données spécifiques selon le type d'utilisateur
+        if user.user_type == 'candidat':
+            candidat = Candidat.objects.get(user=user)
+            candidat_data = CandidatSerializer(candidat).data
+            user_data.update(candidat_data)  # Combine les données de l'utilisateur et du candidat
+        elif user.user_type == 'restaurant':
+            restaurant = Restaurant.objects.get(user=user.id)
+            restaurant_data = RestaurantSerializer(restaurant).data
+            user_data.update(restaurant_data)  # Combine les données de l'utilisateur et du restaurant
+
+        return Response(user_data)
+
+    # Mise à jour des informations de l'utilisateur
     def update(self, request, *args, **kwargs):
         user = self.get_object()
         serializer = self.get_serializer(user, data=request.data, partial=True)
+
         try:
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -114,25 +124,18 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             print(serializer.errors)  # Affiche les erreurs de validation dans la console
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, *args, **kwargs):
-        user = self.get_object()
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
- 
-    
+
 # Vue pour récupérer les détails d'un candidat
 class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Candidat.objects.all()
     serializer_class = CandidatSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
-   
+
     def retrieve(self, request, *args, **kwargs):
         candidat = self.get_object()
         serializer = self.get_serializer(candidat)
         return Response(serializer.data)
-        
-    
+
     def update(self, request, *args, **kwargs):
         candidat = self.get_object()
         # Passer explicitement le contexte lors de l'initialisation du serializer
@@ -144,12 +147,12 @@ class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
         except serializers.ValidationError as e:
             print(serializer.errors)  # Affiche les erreurs de validation dans la console
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-        
-        
-        
- # Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
+
+
+# Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
 class listCandidatesView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         if request.user.user_type == 'recruteur' or request.user.is_staff or request.user.is_superuser:
             candidats = Candidat.objects.all()
@@ -157,15 +160,13 @@ class listCandidatesView(APIView):
             return Response(serializer.data)
         else:
             raise PermissionDenied("Vous n'êtes pas autorisé à voir cette liste.")
-    
-
 
 
 class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def retrieve(self, request, *args, **kwargs):
         restaurant = self.get_object()
         serializer = self.get_serializer(restaurant)
@@ -173,7 +174,7 @@ class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         restaurant = self.get_object()
-        serializer = self.get_serializer(restaurant, data=request.data, partial=True) 
+        serializer = self.get_serializer(restaurant, data=request.data, partial=True)
         try:
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -183,10 +184,10 @@ class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 from rest_framework import generics, permissions
 from .models import Annonce
 from .serializers import AnnonceSerializer
+
 
 # Vue pour gérer les annonces
 class AnnonceListCreateView(generics.ListCreateAPIView):
@@ -206,7 +207,7 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
 class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Annonce.objects.all()
     serializer_class = AnnonceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
         """
@@ -235,15 +236,17 @@ class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
         else:
             raise PermissionDenied("Vous n'êtes pas autorisé à supprimer cette annonce.")
 
+
 def AnnonceView(request):
     return render(request, 'jobfiksi_api/auth/annonce.html')
 
-        
+
 # Vue pour gérer les candidatures
 class CandidatureListCreateView(generics.ListCreateAPIView):
     queryset = Candidature.objects.all()
     serializer_class = CandidatureSerializer
     permission_classes = [permissions.AllowAny]
+
 
 # Vue pour récupérer les préférences d'un candidat
 class PreferenceCandidatDetailView(generics.RetrieveUpdateAPIView):
@@ -251,11 +254,13 @@ class PreferenceCandidatDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = PreferenceCandidatSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 # Vue pour récupérer les préférences d'un restaurant
 class PreferenceRestaurantDetailView(generics.RetrieveUpdateAPIView):
     queryset = PreferenceRestaurant.objects.all()
     serializer_class = PreferenceRestaurantSerializer
     permission_classes = [permissions.IsAuthenticated]
+
 
 # Vue pour gérer les offres
 class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -264,12 +269,11 @@ class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
 
-from django.views.decorators.csrf import csrf_exempt
-
 from django.contrib.auth import authenticate, login, logout
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
+
 
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
@@ -294,6 +298,7 @@ class LoginView(generics.GenericAPIView):
             # Créer une réponse de base sans token
             response_data = {
                 'user': {
+                    'id': user.id,  # Ajoutez d'autres champs si nécessaire, par exemple 'nom', 'prenom
                     'username': user.username,
                     'email': user.email,
                     'user_type': user.user_type,
@@ -314,8 +319,6 @@ class LoginView(generics.GenericAPIView):
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-
-    
 class LogoutView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -323,6 +326,7 @@ class LogoutView(APIView):
         if request.user.is_authenticated:
             logout(request)
         return redirect('login')  # Redirige toujours vers la page de connexion
+
     @csrf_exempt
     def post(self, request):
         if request.user.is_authenticated:

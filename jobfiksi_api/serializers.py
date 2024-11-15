@@ -2,20 +2,26 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Candidat, Restaurant, Annonce, Candidature, Adresse, PreferenceCandidat, PreferenceRestaurant, Offre
 
+
 class AdresseSerializer(serializers.ModelSerializer):
-    #created_by = serializers.ReadOnlyField(source='created_by.username')
+    # created_by = serializers.ReadOnlyField(source='created_by.username')
     rue = serializers.CharField(required=False, allow_blank=True)
     ville = serializers.CharField(required=False, allow_blank=True)
     code_postal = serializers.CharField(required=False, allow_blank=True)
     pays = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Adresse
         fields = ['rue', 'ville', 'code_postal', 'pays']
+
+
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True)
 
+
 User = get_user_model()
+
 
 class UserCreateSerializer(serializers.ModelSerializer):
     user_type = serializers.ChoiceField(choices=User.USER_TYPE_CHOICES)
@@ -42,43 +48,45 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
         return user
 
+
 class CandidatSerializer(serializers.ModelSerializer):
-    adresse = serializers.PrimaryKeyRelatedField(queryset=Adresse.objects.all(), required=False)
-    adresse_data = AdresseSerializer(write_only=True, required=False)
-    type = serializers.CharField(read_only=True)
+
     class Meta:
         model = Candidat
-        fields = ['nom', 'prenom', 'tel', 'date_naissance', 'adresse', 'adresse', 'cv', 'niveau_etude', 'experience', 'adresse_data', 'type']
+        fields = [
+            'nom', 'prenom', 'tel', 'date_naissance', 'genre',
+            'cv', 'lettre_motivation', 'autres_documents', 'niveau_etude',
+            'compentence', 'experience', 'etablissement', 'formation', 'date_debut',
+            'date_fin', 'image', 'ville', 'code_postal', 'pays', 'disponibilite',
+            'plage_horaire', 'iban', 'secu_sociale', 'notification_mail',
+        ]
 
     def update(self, instance, validated_data):
-        adresse_data = validated_data.pop('adresse_data', None) # Récupérer les données de l'adresse
+        # Mise à jour des fichiers uniquement si un fichier est fourni dans validated_data
+        if 'cv' in validated_data and validated_data['cv'] is not None:
+            instance.cv = validated_data['cv']
 
-        # Mettre à jour les champs du candidat
-        instance.nom = validated_data.get('nom', instance.nom)
-        instance.prenom = validated_data.get('prenom', instance.prenom)
-        instance.tel = validated_data.get('tel', instance.tel)
-        instance.date_naissance = validated_data.get('date_naissance', instance.date_naissance)
-        instance.cv = validated_data.get('cv', instance.cv)
-        instance.niveau_etude = validated_data.get('niveau_etude', instance.niveau_etude)
-        instance.experience = validated_data.get('experience', instance.experience)
+        if 'lettre_motivation' in validated_data and validated_data['lettre_motivation'] is not None:
+            instance.lettre_motivation = validated_data['lettre_motivation']
+
+        if 'autres_documents' in validated_data and validated_data['autres_documents'] is not None:
+            instance.autres_documents = validated_data['autres_documents']
+
+        if 'image' in validated_data and validated_data['image'] is not None:
+            instance.image = validated_data['image']
+
+        # Mise à jour des autres champs
+        for field in [
+            'nom', 'prenom', 'tel', 'date_naissance', 'niveau_etude',
+            'compentence', 'experience', 'etablissement', 'formation',
+            'date_debut', 'date_fin', 'ville', 'code_postal', 'pays',
+            'disponibilite', 'plage_horaire', 'iban', 'secu_sociale',
+            'notification_mail', 'genre'
+        ]:
+            setattr(instance, field, validated_data.get(field, getattr(instance, field)))
+
+        # Sauvegarde de l'instance après la mise à jour
         instance.save()
-
-        # Mettre à jour ou créer une nouvelle adresse seulement si des champs sont fournis
-        if adresse_data and any(adresse_data.values()):
-            adresse = instance.adresse
-            if adresse:
-                # Mettre à jour l'adresse existante
-                adresse.rue = adresse_data.get('rue', adresse.rue)
-                adresse.ville = adresse_data.get('ville', adresse.ville)
-                adresse.code_postal = adresse_data.get('code_postal', adresse.code_postal)
-                adresse.pays = adresse_data.get('pays', adresse.pays)
-                adresse.save()
-            else:
-                # Créer une nouvelle adresse et lier automatiquement l'utilisateur connecté
-                adresse = Adresse.objects.create(**adresse_data, created_by=self.context['request'].user)
-                instance.adresse = adresse
-                instance.save()
-
         return instance
 
 
@@ -89,32 +97,37 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = ['nom', 'tel', 'adresse', 'adresse_data', 'type']
+
+        fields = [
+            'nom',
+            'tel',
+            'adresse',
+            'image',
+            'num_et_rue',
+            'ville',
+            'code_postal',
+            'pays',
+            'site_web',
+            'notification_mail',
+            'type'
+        ]
 
     def update(self, instance, validated_data):
-        adresse_data = validated_data.pop('adresse_data', None) # Récupérer les données de l'adresse
-       
+        adresse_data = validated_data.pop('adresse_data', None)  # Récupérer les données de l'adresse
 
         # Mettre à jour les champs du restaurant
         instance.nom = validated_data.get('nom', instance.nom)
         instance.tel = validated_data.get('tel', instance.tel)
-        instance.save()
+        instance.image = validated_data.get('image', instance.image)
+        instance.num_et_rue = validated_data.get('num_et_rue', instance.num_et_rue)
+        instance.ville = validated_data.get('ville', instance.ville)
+        instance.code_postal = validated_data.get('code_postal', instance.code_postal)
+        instance.pays = validated_data.get('pays', instance.pays)
+        instance.site_web = validated_data.get('site_web', instance.site_web)
+        instance.notification_mail = validated_data.get('notification_mail', instance.notification_mail)
+        instance.type = validated_data.get('type', instance.type)
 
-        # Mettre à jour ou créer une nouvelle adresse seulement si des champs sont fournis
-        if adresse_data and any(adresse_data.values()):
-            adresse = instance.adresse
-            if adresse:
-                # Mettre à jour l'adresse existante
-                adresse.rue = adresse_data.get('rue', adresse.rue)
-                adresse.ville = adresse_data.get('ville', adresse.ville)
-                adresse.code_postal = adresse_data.get('code_postal', adresse.code_postal)
-                adresse.pays = adresse_data.get('pays', adresse.pays)
-                adresse.save()
-            else:
-                # Créer une nouvelle adresse et lier automatiquement l'utilisateur connecté
-                adresse = Adresse.objects.create(**adresse_data, created_by=self.context['request'].user)
-                instance.adresse = adresse
-                instance.save()
+        instance.save()
 
         return instance
 
@@ -125,26 +138,31 @@ class AnnonceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Annonce
-        fields = ['titre', 'description', 'date_publication', 'type_contrat', 'salaire', 'temps_travail', 'statut', 'created_by', 'ville']
+        fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat', 'salaire', 'temps_travail',
+                  'statut',
+                  'created_by', 'ville']
+
 
 class CandidatureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Candidature
         fields = ['candidat', 'annonce', 'date_candidature']
 
+
 class PreferenceCandidatSerializer(serializers.ModelSerializer):
     class Meta:
         model = PreferenceCandidat
-        fields = ['candidat', 'flexibilite_deplacement', 'secteur', 'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation', 'possibilite_contrat_direct']
+        fields = ['candidat', 'flexibilite_deplacement', 'secteur', 'type_contrat', 'type_restaurant',
+                  'horaire_travail', 'possibilite_formation', 'possibilite_contrat_direct']
+
 
 class PreferenceRestaurantSerializer(serializers.ModelSerializer):
     class Meta:
         model = PreferenceRestaurant
         fields = ['restaurant', 'niveau_etude', 'possibilite_former', 'possibilite_debutant', 'horaire_travail']
 
+
 class OffreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Offre
         fields = ['annonce']
-
-

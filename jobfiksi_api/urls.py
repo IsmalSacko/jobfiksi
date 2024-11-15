@@ -10,12 +10,9 @@ from .views import (
     UserListCreateRetrieveView,
     AdresseListCreateView,
     UserDetailView,
-   listCandidatesView
+    listCandidatesView, AnnonceDetailView
 
-   
-    
 )
-
 
 urlpatterns = [
     # Route pour créer un utilisateur (candidat ou restaurant)
@@ -31,8 +28,7 @@ urlpatterns = [
 
     # Routes pour gérer les annonces
     path('annonces/', AnnonceListCreateView.as_view(), name='annonce_create'),
-    path('annonces/<int:pk>/', AnnonceListCreateView.as_view(), name='annonce-detail'),
-    
+    path('annonces/<int:pk>/', AnnonceDetailView.as_view(), name='annonce-detail'),
 
     # Routes pour gérer les candidatures
     path('candidatures/', CandidatureListCreateView.as_view(), name='candidature-list-create'),
@@ -41,12 +37,10 @@ urlpatterns = [
     path('candidats/preferences/<int:pk>/', PreferenceCandidatDetailView.as_view(), name='preference-candidat-detail'),
 
     # Routes pour récupérer et mettre à jour les préférences d'un restaurant
-    path('restaurants/preferences/<int:pk>/', PreferenceRestaurantDetailView.as_view(), name='preference-restaurant-detail'),
+    path('restaurants/preferences/<int:pk>/', PreferenceRestaurantDetailView.as_view(),
+         name='preference-restaurant-detail'),
 
-    # Routes pour gérer les offres
-    path('offres/<int:pk>/', OffreDetailView.as_view(), name='offre-detail'),
-    #  Route pour les villes
+
     path('adresse/', AdresseListCreateView.as_view(), name='adresse-create'),
-    
 
 ]

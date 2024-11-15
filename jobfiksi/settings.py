@@ -61,7 +61,7 @@ DATABASES = {
         'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '3306',
-                'OPTIONS': {
+        'OPTIONS': {
             'charset': 'utf8mb4',
         },
     }
@@ -90,9 +90,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
-    
-}
 
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -119,7 +118,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:4200',  # Ou l'URL de votre frontend Angular
+"http://127.0.0.1:4200",
+]
