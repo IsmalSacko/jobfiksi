@@ -125,7 +125,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ['*']
-CORS_ORIGIN_WHITELIST = ('http://localhost:4200')
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:4200',  # URL de ton frontend Angular
+    'https://jobfiksi.ismael-dev.com',  # URL de ton API en production
+]
