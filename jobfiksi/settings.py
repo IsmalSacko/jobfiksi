@@ -124,4 +124,6 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',  # Ou l'URL de votre frontend Angular
     "http://127.0.0.1:4200",
+    "https://jobfiksi.ismael-dev.com",
+
 ]
