@@ -53,32 +53,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jobfiksi.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'jobfiksi',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
-}
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
 #         'NAME': 'jobfiksi',
-#         'USER': 'ismael_admin',
-#         'PASSWORD': 'sacko&diaby',
+#         'USER': 'root',
+#         'PASSWORD': 'root',
 #         'HOST': 'localhost',
 #         'PORT': '3306',
-
-
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         },
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'jobfiksi',
+        'USER': 'ismael_admin',
+        'PASSWORD': 'sacko&diaby',
+        'HOST': 'localhost',
+        'PORT': '3306',
+
+
+    }
+}
 
 
 REST_FRAMEWORK = {
@@ -123,5 +123,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:4200',  # Ou l'URL de votre frontend Angular
-"http://127.0.0.1:4200",
+    "http://127.0.0.1:4200",
 ]
