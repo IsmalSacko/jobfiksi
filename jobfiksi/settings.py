@@ -124,12 +124,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:4200',
-    'https://jobfiksi.ismael-dev.com',
-]
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-    'Authorization',  # Permet d'envoyer l'en-tête Authorization
-    'Content-Type',
-]
+CORS_ORIGIN_ALLOW_ALL = True

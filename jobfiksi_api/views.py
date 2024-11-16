@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect
 from rest_framework import generics, permissions
 from rest_framework import serializers
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
@@ -152,7 +151,6 @@ class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 # Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
 class listCandidatesView(APIView):
-    authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
