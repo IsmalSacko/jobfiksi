@@ -6,7 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'default-secret-key')
 DEBUG = True
 
-ALLOWED_HOSTS = ['https://jobfiksi.ismael-dev.com/', 'www.https://jobfiksi.ismael-dev.com/', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['jobfiksi.ismael-dev.com', '127.0.0.1', 'localhost']
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
