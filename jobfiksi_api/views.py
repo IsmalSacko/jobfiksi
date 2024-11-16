@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
-from django.views.decorators.csrf import csrf_exempt
+
 from .models import Candidat, Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
     Offre
 from .serializers import (
@@ -26,13 +26,13 @@ User = get_user_model()
 class AdresseListCreateView(generics.ListCreateAPIView):
     queryset = Adresse.objects.all()
     serializer_class = AdresseSerializer
-
+    permission_classes = [permissions.AllowAny]
 
 
 class UserListCreateRetrieveView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
-
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
         # Si 'pk' est dans kwargs, récupérer l'utilisateur spécifique, sinon, renvoyer la liste des utilisateurs
@@ -91,7 +91,7 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
-
+    permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         user = self.get_object()
@@ -129,13 +129,13 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Candidat.objects.all()
     serializer_class = CandidatSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         candidat = self.get_object()
         serializer = self.get_serializer(candidat)
         return Response(serializer.data)
 
-    @csrf_exempt
     def update(self, request, *args, **kwargs):
         candidat = self.get_object()
         # Passer explicitement le contexte lors de l'initialisation du serializer
@@ -151,6 +151,7 @@ class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 # Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
 class listCandidatesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         if request.user.user_type == 'recruteur' or request.user.is_staff or request.user.is_superuser:
@@ -164,6 +165,7 @@ class listCandidatesView(APIView):
 class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         restaurant = self.get_object()
@@ -205,6 +207,7 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
 class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Annonce.objects.all()
     serializer_class = AnnonceSerializer
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
         """
@@ -242,24 +245,28 @@ def AnnonceView(request):
 class CandidatureListCreateView(generics.ListCreateAPIView):
     queryset = Candidature.objects.all()
     serializer_class = CandidatureSerializer
+    permission_classes = [permissions.AllowAny]
 
 
 # Vue pour récupérer les préférences d'un candidat
 class PreferenceCandidatDetailView(generics.RetrieveUpdateAPIView):
     queryset = PreferenceCandidat.objects.all()
     serializer_class = PreferenceCandidatSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 # Vue pour récupérer les préférences d'un restaurant
 class PreferenceRestaurantDetailView(generics.RetrieveUpdateAPIView):
     queryset = PreferenceRestaurant.objects.all()
     serializer_class = PreferenceRestaurantSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 # Vue pour gérer les offres
 class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Offre.objects.all()
     serializer_class = OffreSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 from django.contrib.auth import authenticate, login, logout
@@ -270,6 +277,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
+    permission_classes = [permissions.AllowAny]
 
     @csrf_exempt  # Désactiver la vérification CSRF pour cette méthode
     def post(self, request):
@@ -312,6 +320,7 @@ class LoginView(generics.GenericAPIView):
 
 
 class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         if request.user.is_authenticated:
