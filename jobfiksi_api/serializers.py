@@ -91,9 +91,7 @@ class CandidatSerializer(serializers.ModelSerializer):
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
-    adresse = serializers.PrimaryKeyRelatedField(queryset=Adresse.objects.all(), allow_null=True, required=False)
-    adresse_data = AdresseSerializer(write_only=True, required=False)
-    type = serializers.CharField(read_only=True)
+
 
     class Meta:
         model = Restaurant
@@ -101,7 +99,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
         fields = [
             'nom',
             'tel',
-            'adresse',
+            'ville',
             'image',
             'num_et_rue',
             'ville',
