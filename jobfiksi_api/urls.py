@@ -1,6 +1,4 @@
 from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
-
 from .views import (
     CandidatDetailView,
     RestaurantDetailView,
@@ -23,7 +21,7 @@ urlpatterns = [
 
     path('candidats/', listCandidatesView.as_view(), name='candidat-list'),
     # Routes pour un candidat
-    path('candidats/<int:pk>/', csrf_exempt(CandidatDetailView.as_view()), name='candidat-detail'),
+    path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
 
     # Routes pour les restaurants
     path('restaurants/<int:pk>/', RestaurantDetailView.as_view(), name='restaurant-detail'),
