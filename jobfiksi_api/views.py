@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect
+from django.utils.decorators import method_decorator
 from rest_framework import generics, permissions
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
@@ -136,6 +137,7 @@ class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(candidat)
         return Response(serializer.data)
 
+    @method_decorator(csrf_exempt)
     def update(self, request, *args, **kwargs):
         candidat = self.get_object()
         # Passer explicitement le contexte lors de l'initialisation du serializer
