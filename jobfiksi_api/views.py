@@ -129,7 +129,7 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Candidat.objects.all()
     serializer_class = CandidatSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def retrieve(self, request, *args, **kwargs):
         candidat = self.get_object()
