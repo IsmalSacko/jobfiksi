@@ -1,5 +1,11 @@
+import math
+from email.utils import unquote
+
+import requests
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.shortcuts import render, redirect
+from geopy.distance import geodesic
 from rest_framework import generics, permissions
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
@@ -7,7 +13,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 
 from .models import Candidat, Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
-    Offre
+    Offre, Annonce
 from .serializers import (
     UserCreateSerializer,
     CandidatSerializer,
@@ -17,7 +23,7 @@ from .serializers import (
     PreferenceRestaurantSerializer,
     OffreSerializer,
     LoginSerializer,
-    AdresseSerializer
+    AdresseSerializer, AnnonceSerializer
 )
 
 User = get_user_model()
@@ -184,14 +190,33 @@ class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
 
-from rest_framework import generics, permissions
-from .models import Annonce
-from .serializers import AnnonceSerializer
+def get_lyon_coordinates():
+    """Obtenir les coordonnées de Lyon via Nominatim (OpenStreetMap)."""
+    try:
+        response = requests.get(
+            'https://nominatim.openstreetmap.org/search',
+            params={
+                'q': 'Lyon, France',  # Recherche pour Lyon
+                'format': 'json',
+                'limit': 5
+            }
+        )
+
+        if response.status_code == 200 and response.json():
+            location_data = response.json()[0]
+            return float(location_data['lat']), float(location_data['lon'])
+    except Exception as e:
+        print(f"Erreur lors de l'appel à Nominatim : {e}")
+
+    # Coordonnées par défaut pour Lyon
+    return 45.764043, 4.835659
 
 
-# Vue pour gérer les annonces
+# Coordonnées de Lyon (par défaut)
+LYON_COORDINATES = (45.764043, 4.835659)
+
+
 class AnnonceListCreateView(generics.ListCreateAPIView):
-    queryset = Annonce.objects.all()
     serializer_class = AnnonceSerializer
 
     # Permission pour permettre à tout le monde de voir la liste, mais seuls les utilisateurs authentifiés peuvent créer
@@ -200,8 +225,79 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
             return [permissions.IsAuthenticated()]  # Authentification requise pour la création
         return super().get_permissions()  # Autoriser l'accès à la liste pour tout le monde
 
+    def get_queryset(self):
+        queryset = Annonce.objects.all()
+
+        # Filtrage par mot-clé (si un mot-clé est fourni)
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            decoded_search_query = unquote(search_query)
+            queryset = queryset.filter(
+                Q(titre__icontains=decoded_search_query) |  # Recherche par titre
+                Q(description__icontains=decoded_search_query) |  # Recherche par description
+                Q(type_contrat__icontains=decoded_search_query) |  # Recherche par type de contrat
+                Q(temps_travail__icontains=decoded_search_query) |  # Recherche par temps de travail
+                Q(salaire__icontains=decoded_search_query) |  # Recherche par salaire
+                Q(created_by__in=User.objects.filter(username__icontains=decoded_search_query))
+                # Recherche par créateur
+            )
+
+        # Récupérer la position de l'utilisateur (ou utiliser Lyon par défaut)
+        user_latitude = self.request.query_params.get('latitude', None)
+        user_longitude = self.request.query_params.get('longitude', None)
+
+        # Si l'utilisateur n'a pas fourni de coordonnées, utiliser Lyon
+        if not user_latitude or not user_longitude:
+            user_latitude, user_longitude = LYON_COORDINATES
+
+        radius = self.request.query_params.get('radius', 25)  # Rayon par défaut de 25 km
+
+        user_latitude = float(user_latitude)
+        user_longitude = float(user_longitude)
+        radius = float(radius)
+
+        # Filtrer les annonces avec des coordonnées valides
+        valid_annonces = queryset.filter(latitude__isnull=False, longitude__isnull=False)
+
+        # Ajouter la distance et filtrer selon le rayon
+        annonces_with_distance = []
+        for annonce in valid_annonces:
+            # Calculer la distance entre l'utilisateur et l'offre
+            distance = geodesic(
+                (user_latitude, user_longitude),
+                (annonce.latitude, annonce.longitude)
+            ).km
+            annonce.distance = distance  # Ajouter la distance calculée à l'offre
+
+            # Filtrer les annonces selon le rayon
+            if distance <= radius:
+                annonces_with_distance.append(annonce)
+
+        # Passer les coordonnées utilisateur au sérialiseur via le contexte
+        context = {
+            'user_latitude': user_latitude,
+            'user_longitude': user_longitude
+        }
+
+        # Sérialiser les annonces avec le contexte
+        serializer = AnnonceSerializer(annonces_with_distance, many=True, context=context)
+        return serializer.data
+
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)  # L'utilisateur connecté qui crée l'annonce
+        # Si aucune latitude/longitude n'est fournie, utiliser les coordonnées par défaut (Lyon)
+        latitude = self.request.data.get('latitude', None)
+        longitude = self.request.data.get('longitude', None)
+
+        if not latitude or not longitude:
+            latitude, longitude = get_lyon_coordinates()
+
+        serializer.save(
+            created_by=self.request.user,
+            latitude=latitude,
+            longitude=longitude
+        )
+
+
 
 
 class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):

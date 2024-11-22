@@ -123,8 +123,10 @@ class Annonce(models.Model):
     salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     temps_travail = models.CharField(max_length=10, choices=TEMPS_TRAVAIL_CHOICES)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                                   related_name='annonces')  # L'utilisateur qui a créé l'annonce
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='annonces')
+    # Champs de géolocalisation
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     def __str__(self):
         return self.titre

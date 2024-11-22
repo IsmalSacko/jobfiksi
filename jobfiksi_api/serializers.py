@@ -138,7 +138,7 @@ class AnnonceSerializer(serializers.ModelSerializer):
         model = Annonce
         fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat', 'salaire', 'temps_travail',
                   'statut',
-                  'created_by', 'ville']
+                  'created_by', 'ville', 'latitude', 'longitude']
 
 
 class CandidatureSerializer(serializers.ModelSerializer):
