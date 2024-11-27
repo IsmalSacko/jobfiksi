@@ -10,6 +10,7 @@ from rest_framework import generics, permissions
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from .models import Candidat, Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
@@ -119,40 +120,41 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     # Mise à jour des informations de l'utilisateur
     def update(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = self.get_serializer(user, data=request.data, partial=True)
+        user = self.get_object()  # Récupérer l'objet utilisateur actuel
+        user_serializer = self.get_serializer(user, data=request.data, partial=True)
 
+        # Valider et enregistrer les modifications de l'utilisateur
         try:
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
+            user_serializer.is_valid(raise_exception=True)
+            user_serializer.save()  # Enregistrer les modifications de l'utilisateur
         except serializers.ValidationError as e:
-            print(serializer.errors)  # Affiche les erreurs de validation dans la console
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
+        # Si l'utilisateur est un candidat, mettre à jour les informations du candidat
+        if user.user_type == 'candidat':
+            try:
+                candidat = Candidat.objects.get(user=user)  # Récupérer l'objet Candidat associé
+                candidat_serializer = CandidatSerializer(candidat, data=request.data, partial=True)
+                if candidat_serializer.is_valid():
+                    candidat_serializer.save()  # Enregistrer les modifications du candidat
+                else:
+                    return Response(candidat_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            except Candidat.DoesNotExist:
+                return Response({'detail': 'Candidat not found for this user.'}, status=status.HTTP_404_NOT_FOUND)
 
-# Vue pour récupérer les détails d'un candidat
-class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Candidat.objects.all()
-    serializer_class = CandidatSerializer
-    permission_classes = [permissions.IsAuthenticated]
+        # Si l'utilisateur est un restaurant, mettre à jour les informations du restaurant
+        elif user.user_type == 'restaurant':
+            try:
+                restaurant = Restaurant.objects.get(user=user.id)  # Récupérer l'objet Restaurant associé
+                restaurant_serializer = RestaurantSerializer(restaurant, data=request.data, partial=True)
+                if restaurant_serializer.is_valid():
+                    restaurant_serializer.save()  # Enregistrer les modifications du restaurant
+                else:
+                    return Response(restaurant_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            except Restaurant.DoesNotExist:
+                return Response({'detail': 'Restaurant not found for this user.'}, status=status.HTTP_404_NOT_FOUND)
 
-    def retrieve(self, request, *args, **kwargs):
-        candidat = self.get_object()
-        serializer = self.get_serializer(candidat)
-        return Response(serializer.data)
-
-    def update(self, request, *args, **kwargs):
-        candidat = self.get_object()
-        # Passer explicitement le contexte lors de l'initialisation du serializer
-        serializer = self.get_serializer(candidat, data=request.data, partial=True, context={'request': request})
-        try:
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        except serializers.ValidationError as e:
-            print(serializer.errors)  # Affiche les erreurs de validation dans la console
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        return Response(user_serializer.data)  # Retourner les données de l'utilisateur, incluant les mises à jour
 
 
 # Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
@@ -166,28 +168,6 @@ class listCandidatesView(APIView):
             return Response(serializer.data)
         else:
             raise PermissionDenied("Vous n'êtes pas autorisé à voir cette liste.")
-
-
-class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Restaurant.objects.all()
-    serializer_class = RestaurantSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def retrieve(self, request, *args, **kwargs):
-        restaurant = self.get_object()
-        serializer = self.get_serializer(restaurant)
-        return Response(serializer.data)
-
-    def update(self, request, *args, **kwargs):
-        restaurant = self.get_object()
-        serializer = self.get_serializer(restaurant, data=request.data, partial=True)
-        try:
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data)
-        except serializers.ValidationError as e:
-            print(serializer.errors)  # Affiche les erreurs de validation dans la console
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
 
 def get_lyon_coordinates():
@@ -296,8 +276,6 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
             latitude=latitude,
             longitude=longitude
         )
-
-
 
 
 class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -428,3 +406,36 @@ class LogoutView(APIView):
         if request.user.is_authenticated:
             logout(request)
         return redirect('/login/')  # Redirige toujours vers la page de connexion
+
+
+class CandidatProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = CandidatSerializer
+    permission_classes = [IsAuthenticated]  # Seul un utilisateur authentifié peut accéder à cette vue
+
+    def get_object(self):
+        # On récupère l'utilisateur connecté
+        user = self.request.user
+        # Puis on cherche le profil Candidat lié à cet utilisateur
+        return Candidat.objects.get(user_id=user.id)
+
+    def perform_update(self, serializer):
+        # Cette méthode est appelée après validation des données.
+        # Elle met à jour le profil du candidat
+        candidat = self.get_object()
+        serializer.save(candidat=candidat)
+
+class RestaurantProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = RestaurantSerializer
+    permission_classes = [IsAuthenticated]  # Seul un utilisateur authentifié peut accéder à cette vue
+
+    def get_object(self):
+        # On récupère l'utilisateur connecté
+        user = self.request.user
+        # Puis on cherche le profil Restaurant lié à cet utilisateur
+        return Restaurant.objects.get(user_id=user.id)
+
+    def perform_update(self, serializer):
+        # Cette méthode est appelée après validation des données.
+        # Elle met à jour le profil du restaurant
+        restaurant = self.get_object()
+        serializer.save(restaurant=restaurant)

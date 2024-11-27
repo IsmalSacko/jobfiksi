@@ -1,7 +1,6 @@
 from django.urls import path
 from .views import (
-    CandidatDetailView,
-    RestaurantDetailView,
+    RestaurantProfileView,
     AnnonceListCreateView,
     CandidatureListCreateView,
     PreferenceCandidatDetailView,
@@ -10,7 +9,7 @@ from .views import (
     UserListCreateRetrieveView,
     AdresseListCreateView,
     UserDetailView,
-    listCandidatesView, AnnonceDetailView
+    listCandidatesView, AnnonceDetailView, CandidatProfileView
 
 )
 
@@ -19,13 +18,10 @@ urlpatterns = [
     path('users/', UserListCreateRetrieveView.as_view(), name='user_create'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
 
-    path('candidats/', listCandidatesView.as_view(), name='candidat-list'),
-    # Routes pour un candidat
-    path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
 
     # Routes pour les restaurants
-    path('restaurants/<int:pk>/', RestaurantDetailView.as_view(), name='restaurant-detail'),
-
+    path('restaurants/profile/', RestaurantProfileView.as_view(), name='restaurant-profile'),
+    path('candidats/profile/', CandidatProfileView.as_view(), name='candidat-profile'),
     # Routes pour gérer les annonces
     path('annonces/', AnnonceListCreateView.as_view(), name='annonce_create'),
     path('annonces/<int:pk>/', AnnonceDetailView.as_view(), name='annonce-detail'),

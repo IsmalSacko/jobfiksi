@@ -63,6 +63,8 @@ class Candidat(models.Model):
     type_de_poste_recherche = models.CharField(max_length=100, null=True, blank=True)
     type_de_contrat_recherche = models.CharField(max_length=100, null=True, blank=True)
     preference_lieu = models.CharField(max_length=100, null=True, blank=True)
+    salaire_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    salaire_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     # preférence_salaire en euros
     preference_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     # notification par mail oui ou non

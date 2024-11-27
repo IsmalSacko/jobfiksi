@@ -50,14 +50,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class CandidatSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Candidat
         fields = [
+            'id',  # Ajout de l'id pour permettre la mise à jour
             'nom', 'prenom', 'tel', 'date_naissance', 'genre',
             'cv', 'lettre_motivation', 'autres_documents', 'niveau_etude',
             'compentence', 'experience', 'etablissement', 'formation', 'date_debut',
             'date_fin', 'image', 'ville', 'code_postal', 'pays', 'disponibilite',
+            'preference_salaire', 'salaire_min', 'salaire_max',
             'plage_horaire', 'iban', 'secu_sociale', 'notification_mail',
         ]
 
@@ -81,6 +84,7 @@ class CandidatSerializer(serializers.ModelSerializer):
             'compentence', 'experience', 'etablissement', 'formation',
             'date_debut', 'date_fin', 'ville', 'code_postal', 'pays',
             'disponibilite', 'plage_horaire', 'iban', 'secu_sociale',
+            'preference_salaire', 'salaire_min', 'salaire_max',
             'notification_mail', 'genre'
         ]:
             setattr(instance, field, validated_data.get(field, getattr(instance, field)))
@@ -91,12 +95,14 @@ class CandidatSerializer(serializers.ModelSerializer):
 
 
 class RestaurantSerializer(serializers.ModelSerializer):
-
+    id = serializers.IntegerField(read_only=True)
+    type = serializers.CharField(source='user.user_type', read_only=True)
 
     class Meta:
         model = Restaurant
 
         fields = [
+            'id',  # Ajout de l'id pour permettre la mise à jour
             'nom',
             'tel',
             'ville',
@@ -108,6 +114,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'site_web',
             'notification_mail',
             'type'
+
         ]
 
     def update(self, instance, validated_data):

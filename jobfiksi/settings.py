@@ -36,6 +36,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'jobfiksi.urls'
 AUTH_USER_MODEL = 'jobfiksi_api.CustomUser'
 
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -54,31 +55,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jobfiksi.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'jobfiksi',
-#         'USER': 'root',
-#         'PASSWORD': 'root',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#         },
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'jobfiksi',
-        'USER': 'ismael_admin',
-        'PASSWORD': 'sacko&diaby',
+        'USER': 'root',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '3306',
-
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
+#
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'jobfiksi',
+#         'USER': 'ismael_admin',
+#         'PASSWORD': 'sacko&diaby',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#
+#     }
+# }
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
