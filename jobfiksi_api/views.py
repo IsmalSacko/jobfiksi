@@ -162,7 +162,7 @@ class listCandidatesView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if request.user.user_type == 'recruteur' or request.user.is_staff or request.user.is_superuser:
+        if request.user.user_type == 'restaurant' or request.user.is_staff or request.user.is_superuser:
             candidats = Candidat.objects.all()
             serializer = CandidatSerializer(candidats, many=True)
             return Response(serializer.data)
