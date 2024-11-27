@@ -65,6 +65,7 @@ class Candidat(models.Model):
     preference_lieu = models.CharField(max_length=100, null=True, blank=True)
     salaire_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     salaire_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    email_pro = models.EmailField(null=True, blank=True)
     # preférence_salaire en euros
     preference_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     # notification par mail oui ou non
@@ -81,7 +82,7 @@ class Restaurant(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='restaurant_profile')
     nom = models.CharField(max_length=100)
     tel = models.CharField(max_length=20, null=True, blank=True)
-    # adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
+    email_pro = models.EmailField(null=True, blank=True)
     type = models.CharField(max_length=100)
     image = models.ImageField(upload_to='images/restaurant', null=True, blank=True)
     num_et_rue = models.CharField(max_length=255, null=True, blank=True)
