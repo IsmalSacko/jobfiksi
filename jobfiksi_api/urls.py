@@ -19,7 +19,7 @@ urlpatterns = [
     path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
 
     # Route pour lister les candidats
-    path('candidats/', listCandidatesView, name='candidat-list'),
+    path('candidats/', listCandidatesView.as_view(), name='candidat-list'),
     # Routes pour les restaurants
     path('restaurants/profile/', RestaurantProfileView.as_view(), name='restaurant-profile'),
     path('candidats/profile/', CandidatProfileView.as_view(), name='candidat-profile'),
