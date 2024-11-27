@@ -59,7 +59,7 @@ class CandidatSerializer(serializers.ModelSerializer):
             'nom', 'prenom', 'tel', 'date_naissance', 'genre',
             'cv', 'lettre_motivation', 'autres_documents', 'niveau_etude',
             'compentence', 'experience', 'etablissement', 'formation', 'date_debut',
-            'date_fin', 'image', 'ville', 'code_postal', 'pays', 'disponibilite',
+            'date_fin', 'image', 'ville', 'num_et_rue', 'code_postal', 'pays', 'disponibilite',
             'preference_salaire', 'salaire_min', 'salaire_max',
             'plage_horaire', 'iban', 'secu_sociale', 'notification_mail',
         ]
@@ -82,7 +82,7 @@ class CandidatSerializer(serializers.ModelSerializer):
         for field in [
             'nom', 'prenom', 'tel', 'date_naissance', 'niveau_etude',
             'compentence', 'experience', 'etablissement', 'formation',
-            'date_debut', 'date_fin', 'ville', 'code_postal', 'pays',
+            'date_debut', 'date_fin', 'ville', 'num_et_rue', 'code_postal', 'pays',
             'disponibilite', 'plage_horaire', 'iban', 'secu_sociale',
             'preference_salaire', 'salaire_min', 'salaire_max',
             'notification_mail', 'genre'

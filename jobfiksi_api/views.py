@@ -424,6 +424,7 @@ class CandidatProfileView(generics.RetrieveUpdateAPIView):
         candidat = self.get_object()
         serializer.save(candidat=candidat)
 
+
 class RestaurantProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = RestaurantSerializer
     permission_classes = [IsAuthenticated]  # Seul un utilisateur authentifié peut accéder à cette vue
