@@ -9,7 +9,7 @@ from .views import (
     UserListCreateRetrieveView,
     AdresseListCreateView,
     UserDetailView,
-    ListCandidatesView, AnnonceDetailView, CandidatProfileView, CandidatDetailView, ConfirmEmailView
+    ListCandidatesView, AnnonceDetailView, CandidatProfileView, CandidatDetailView,
 
 )
 
@@ -40,7 +40,6 @@ urlpatterns = [
 
     path('adresse/', AdresseListCreateView.as_view(), name='adresse-create'),
 
-    path('users/', UserListCreateRetrieveView.as_view(), name='user-list-create'),
-    path('users/confirm-email/<uidb64>/<token>/', ConfirmEmailView.as_view(), name='user-confirm-email'),
+
 
 ]

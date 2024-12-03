@@ -54,36 +54,37 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'jobfiksi.wsgi.application'
-#
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'jobfiksi',
-#         'USER': 'root',
-#         'PASSWORD': 'root',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#         },
-#     }
-# }
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'jobfiksi',
-        'USER': 'ismael_admin',
-        'PASSWORD': 'sacko&diaby',
+        'USER': 'root',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '3306',
-
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
+#
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'jobfiksi',
+#         'USER': 'ismael_admin',
+#         'PASSWORD': 'sacko&diaby',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#
+#     }
+# }
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -117,12 +118,16 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+# Configuration pour l'envoi d'e-mails
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'ismalsacko@gmail.com'
+EMAIL_HOST_PASSWORD = 'hznu jjue olhf xrma'
 
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",
-]
+
 
 CORS_ALLOW_HEADERS = [
     'content-type',

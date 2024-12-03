@@ -1,36 +1,23 @@
 import decimal
 from email.utils import unquote
-from urllib.parse import unquote
 
+from rest_framework.authtoken.models import Token
+from django.core.mail import send_mail
+from django.urls import reverse
+from rest_framework import status
 import requests
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import PermissionDenied
-from django.core.mail import send_mail
-from django.db.models import Q
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
-from django.urls import reverse
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_decode
-from django.utils.http import urlsafe_base64_encode
 from django.views.decorators.csrf import csrf_exempt
 from geopy.distance import geodesic
 from rest_framework import generics, permissions
 from rest_framework import serializers
-from rest_framework import status
-from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from .models import Candidat
 from .models import Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
     Offre, Annonce
-from .serializers import CandidatSerializer
 from .serializers import (
     UserCreateSerializer,
     RestaurantSerializer,
@@ -51,66 +38,6 @@ class AdresseListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 
-# class UserListCreateRetrieveView(generics.ListCreateAPIView):
-#     queryset = User.objects.all()
-#     serializer_class = UserCreateSerializer
-#     permission_classes = [permissions.AllowAny]
-#
-#     def get(self, request, *args, **kwargs):
-#         # Si 'pk' est dans kwargs, récupérer l'utilisateur spécifique, sinon, renvoyer la liste des utilisateurs
-#         if 'pk' in kwargs:
-#             return self.retrieve(request, *args, **kwargs)
-#         return self.list(request, *args, **kwargs)
-#
-#     def create(self, request, *args, **kwargs):
-#         serializer = self.get_serializer(data=request.data)
-#
-#         if serializer.is_valid():
-#             user = serializer.save()
-#
-#             # Création du profil en fonction du type d'utilisateur
-#             if user.user_type == 'restaurant':
-#                 Restaurant.objects.get_or_create(
-#                     user=user,
-#                     defaults={
-#                         'nom': user.username,
-#                         'tel': '0123456789',
-#                         'type': user.user_type
-#                     }
-#                 )
-#             elif user.user_type == 'candidat':
-#                 Candidat.objects.get_or_create(
-#                     user=user,
-#                     defaults={
-#                         'nom': user.username,
-#                         'tel': '0123456789',
-#                         'date_naissance': '2000-01-01',
-#                         'niveau_etude': "Niveau d'étude par défaut",
-#                         'experience': "Expérience par défaut",
-#                         'user_type': user.user_type
-#                     }
-#                 )
-#
-#             # Créer et retourner le token
-#             token, _ = Token.objects.get_or_create(user=user)
-#
-#             response_data = {
-#                 'user': {
-#                     'id': user.id,
-#                     'username': user.username,
-#                     'email': user.email,
-#                     'user_type': user.user_type,
-#                 },
-#                 'token': token.key,
-#                 'redirect_url': '/api/users/' + str(user.id) + '/',
-#             }
-#             return Response(response_data, status=status.HTTP_201_CREATED)
-#
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-# Vue pour récupérer les détails d'un utilisateur
-
 class UserListCreateRetrieveView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
@@ -127,14 +54,18 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
 
         if serializer.is_valid():
             user = serializer.save()
-            user.is_active = False  # Désactiver l'utilisateur jusqu'à confirmation
+            user.is_active = True  # Activer immédiatement l'utilisateur
             user.save()
+
+            # Création automatique du token pour l'utilisateur
+            token, created = Token.objects.get_or_create(user=user)
 
             # Création du profil en fonction du type d'utilisateur
             if user.user_type == 'restaurant':
                 Restaurant.objects.get_or_create(
                     user=user,
                     defaults={
+
                         'nom': user.username,
                         'tel': '0123456789',
                         'type': user.user_type
@@ -147,71 +78,47 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
                         'nom': user.username,
                         'tel': '0123456789',
                         'date_naissance': '2000-01-01',
-                        'niveau_etude': "Niveau d'étude par défaut",
+                        'niveau_etude': "BAC+5",
                         'experience': "Expérience par défaut",
                         'user_type': user.user_type
                     }
                 )
 
-            # Générer un token de validation pour l'email
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            confirmation_url = request.build_absolute_uri(
-                reverse('user-confirm-email', kwargs={'uidb64': uid, 'token': token})
-            )
-
-            # Générer dynamiquement le lien de connexion
+            # Générer dynamiquement le lien vers la page de connexion
             login_url = request.build_absolute_uri(reverse('login'))
-            lien_login = f'<a href="{login_url}">Se connecter</a>'
 
             # Envoyer un email de confirmation
             send_mail(
-                subject="Confirmez votre adresse email",
-                message=f"Bonjour {user.username},\n\n"
-                        f"Veuillez cliquer sur le lien suivant pour confirmer votre email :\n\n{confirmation_url}\n\n"
-                        f"Après confirmation, vous pourrez vous connecter ici : {login_url}",
+                subject="Bienvenue sur JobFiksi - Inscription réussie",
+                message=(
+                    f"Bonjour {user.username},\n\n"
+                    f"Votre inscription a bien été prise en compte.\n\n"
+                    f"Vous pouvez maintenant vous connecter via ce lien : {login_url}\n\n"
+                    f"Cordialement,\nL'équipe JobFiksi"
+                ),
                 from_email="jobfiksi@gmail.com",
                 recipient_list=[user.email],
                 fail_silently=False,
             )
 
+            # Retourner une réponse claire avec le token
             response_data = {
-                'message': 'Un email de confirmation a été envoyé. Veuillez vérifier votre boîte mail.',
+                'message': 'Inscription réussie ! Un email de confirmation a été envoyé.',
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
                     'user_type': user.user_type,
                 },
+                'token': token.key
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ConfirmEmailView(APIView):
-    permission_classes = [permissions.AllowAny]
 
-    def get(self, request, uidb64, token, *args, **kwargs):
-        try:
-            uid = urlsafe_base64_decode(uidb64).decode()
-            user = get_object_or_404(User, pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
-
-        if user is not None and default_token_generator.check_token(user, token):
-            user.is_active = True
-            user.save()
-
-            # Générer dynamiquement le lien de connexion
-            login_url = request.build_absolute_uri(reverse('login'))
-            lien_login = f'<a href="{login_url}">Se connecter</a>'
-
-            return HttpResponse(f"Votre email a été confirmé avec succès. Vous pouvez maintenant vous connecter {lien_login}")
-        else:
-            return HttpResponse("Lien invalide ou expiré.", status=400)
-
-
+# Vue pour récupérer les détails d'un utilisateur
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
@@ -274,6 +181,18 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response(user_serializer.data)  # Retourner les données de l'utilisateur, incluant les mises à jour
 
 
+# Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
+from django.db.models import Q
+from django.core.exceptions import PermissionDenied
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import permissions
+from urllib.parse import unquote
+
+from .models import Candidat
+from .serializers import CandidatSerializer
+
+
 class ListCandidatesView(generics.ListAPIView):
     queryset = Candidat.objects.all()
     serializer_class = CandidatSerializer
@@ -309,6 +228,7 @@ class ListCandidatesView(generics.ListAPIView):
             )
 
         return Candidat.objects.all()
+
 
 
 class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
