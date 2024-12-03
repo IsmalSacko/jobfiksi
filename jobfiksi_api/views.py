@@ -13,7 +13,6 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode
 from django.utils.http import urlsafe_base64_encode
@@ -496,11 +495,11 @@ class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
 
-@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
 
+    @csrf_exempt  # Désactiver la vérification CSRF pour cette méthode
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
@@ -516,19 +515,22 @@ class LoginView(generics.GenericAPIView):
             # Connecter l'utilisateur et créer la session
             login(request, user)
 
-            # Obtenir ou créer un token pour l'utilisateur
-            token, _ = Token.objects.get_or_create(user=user)
-
-            # Construire la réponse
+            # Créer une réponse de base sans token
             response_data = {
                 'user': {
-                    'id': user.id,
+                    'id': user.id,  # Ajoutez d'autres champs si nécessaire, par exemple 'nom', 'prenom
                     'username': user.username,
                     'email': user.email,
                     'user_type': user.user_type,
+                    'token': user.auth_token.key,
                 },
-                'token': token.key,  # Inclure toujours le token ici
             }
+
+            # Vérifiez si le token est nécessaire et ajoutez-le si besoin
+            include_token = request.data.get('include_token', False)  # optionnel dans la requête
+            if include_token:
+                token, _ = Token.objects.get_or_create(user=user)
+                response_data['token'] = token.key
 
             return Response(response_data, status=status.HTTP_200_OK)
 
