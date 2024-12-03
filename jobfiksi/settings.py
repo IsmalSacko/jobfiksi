@@ -8,6 +8,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['jobfiksi.ismael-dev.com', '127.0.0.1', 'localhost']
 
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -34,6 +35,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'jobfiksi.urls'
 AUTH_USER_MODEL = 'jobfiksi_api.CustomUser'
+
 
 TEMPLATES = [
     {
@@ -116,6 +118,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
@@ -126,11 +129,3 @@ CORS_ALLOW_HEADERS = [
     'authorization',
     'x-csrftoken',
 ]
-
-# Configuration pour l'envoi d'e-mails
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ismalsacko@gmail.com'
-EMAIL_HOST_PASSWORD = 'hznu jjue olhf xrma'
