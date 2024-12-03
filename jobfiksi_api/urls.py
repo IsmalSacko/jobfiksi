@@ -1,15 +1,15 @@
 from django.urls import path
+
 from .views import (
     RestaurantProfileView,
     AnnonceListCreateView,
     CandidatureListCreateView,
     PreferenceCandidatDetailView,
     PreferenceRestaurantDetailView,
-    OffreDetailView,
     UserListCreateRetrieveView,
     AdresseListCreateView,
     UserDetailView,
-    listCandidatesView, AnnonceDetailView, CandidatProfileView
+    ListCandidatesView, AnnonceDetailView, CandidatProfileView, CandidatDetailView, ConfirmEmailView
 
 )
 
@@ -19,7 +19,8 @@ urlpatterns = [
     path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
 
     # Route pour lister les candidats
-    path('candidats/', listCandidatesView.as_view(), name='candidat-list'),
+    path('candidats/', ListCandidatesView.as_view(), name='candidat-list'),
+    path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
     # Routes pour les restaurants
     path('restaurants/profile/', RestaurantProfileView.as_view(), name='restaurant-profile'),
     path('candidats/profile/', CandidatProfileView.as_view(), name='candidat-profile'),
@@ -37,7 +38,9 @@ urlpatterns = [
     path('restaurants/preferences/<int:pk>/', PreferenceRestaurantDetailView.as_view(),
          name='preference-restaurant-detail'),
 
-
     path('adresse/', AdresseListCreateView.as_view(), name='adresse-create'),
+
+    path('users/', UserListCreateRetrieveView.as_view(), name='user-list-create'),
+    path('users/confirm-email/<uidb64>/<token>/', ConfirmEmailView.as_view(), name='user-confirm-email'),
 
 ]

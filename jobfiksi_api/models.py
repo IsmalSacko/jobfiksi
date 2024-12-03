@@ -92,6 +92,7 @@ class Restaurant(models.Model):
     site_web = models.URLField(null=True, blank=True)
     notification_mail = models.BooleanField(default=False)
 
+
     def __str__(self):
         # return tous les champs du restaurant
         return f"{self.nom} {self.tel} {self.type} {self.site_web}"
@@ -125,12 +126,14 @@ class Annonce(models.Model):
     type_contrat = models.CharField(max_length=3, choices=TYPE_CONTRAT_CHOICES)
     salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     temps_travail = models.CharField(max_length=10, choices=TEMPS_TRAVAIL_CHOICES)
+    nb_heures_semaine = models.IntegerField(null=True, blank=True)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='annonces')
     # Champs de géolocalisation
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-
+    avantages = models.TextField(null=True, blank=True)
+    mode_paiement = models.CharField(max_length=100, null=True, blank=True)
     def __str__(self):
         return self.titre
 

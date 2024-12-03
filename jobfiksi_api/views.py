@@ -1,23 +1,38 @@
-import math
+import decimal
 from email.utils import unquote
+from urllib.parse import unquote
 
 import requests
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import PermissionDenied
+from django.core.mail import send_mail
 from django.db.models import Q
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_decode
+from django.utils.http import urlsafe_base64_encode
+from django.views.decorators.csrf import csrf_exempt
 from geopy.distance import geodesic
 from rest_framework import generics, permissions
 from rest_framework import serializers
+from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Candidat, Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
+from .models import Candidat
+from .models import Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
     Offre, Annonce
+from .serializers import CandidatSerializer
 from .serializers import (
     UserCreateSerializer,
-    CandidatSerializer,
     RestaurantSerializer,
     CandidatureSerializer,
     PreferenceCandidatSerializer,
@@ -36,6 +51,66 @@ class AdresseListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.AllowAny]
 
 
+# class UserListCreateRetrieveView(generics.ListCreateAPIView):
+#     queryset = User.objects.all()
+#     serializer_class = UserCreateSerializer
+#     permission_classes = [permissions.AllowAny]
+#
+#     def get(self, request, *args, **kwargs):
+#         # Si 'pk' est dans kwargs, récupérer l'utilisateur spécifique, sinon, renvoyer la liste des utilisateurs
+#         if 'pk' in kwargs:
+#             return self.retrieve(request, *args, **kwargs)
+#         return self.list(request, *args, **kwargs)
+#
+#     def create(self, request, *args, **kwargs):
+#         serializer = self.get_serializer(data=request.data)
+#
+#         if serializer.is_valid():
+#             user = serializer.save()
+#
+#             # Création du profil en fonction du type d'utilisateur
+#             if user.user_type == 'restaurant':
+#                 Restaurant.objects.get_or_create(
+#                     user=user,
+#                     defaults={
+#                         'nom': user.username,
+#                         'tel': '0123456789',
+#                         'type': user.user_type
+#                     }
+#                 )
+#             elif user.user_type == 'candidat':
+#                 Candidat.objects.get_or_create(
+#                     user=user,
+#                     defaults={
+#                         'nom': user.username,
+#                         'tel': '0123456789',
+#                         'date_naissance': '2000-01-01',
+#                         'niveau_etude': "Niveau d'étude par défaut",
+#                         'experience': "Expérience par défaut",
+#                         'user_type': user.user_type
+#                     }
+#                 )
+#
+#             # Créer et retourner le token
+#             token, _ = Token.objects.get_or_create(user=user)
+#
+#             response_data = {
+#                 'user': {
+#                     'id': user.id,
+#                     'username': user.username,
+#                     'email': user.email,
+#                     'user_type': user.user_type,
+#                 },
+#                 'token': token.key,
+#                 'redirect_url': '/api/users/' + str(user.id) + '/',
+#             }
+#             return Response(response_data, status=status.HTTP_201_CREATED)
+#
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Vue pour récupérer les détails d'un utilisateur
+
 class UserListCreateRetrieveView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
@@ -52,6 +127,8 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
 
         if serializer.is_valid():
             user = serializer.save()
+            user.is_active = False  # Désactiver l'utilisateur jusqu'à confirmation
+            user.save()
 
             # Création du profil en fonction du type d'utilisateur
             if user.user_type == 'restaurant':
@@ -76,25 +153,56 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
                     }
                 )
 
-            # Créer et retourner le token
-            token, _ = Token.objects.get_or_create(user=user)
+            # Générer un token de validation pour l'email
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            confirmation_url = request.build_absolute_uri(
+                reverse('user-confirm-email', kwargs={'uidb64': uid, 'token': token})
+            )
+
+            # Envoyer un email de confirmation
+            send_mail(
+                subject="Confirmez votre adresse email",
+                message=f"Bonjour {user.username},\n\n"
+                        f"Veuillez cliquer sur le lien suivant pour confirmer votre email :\n\n{confirmation_url}",
+                from_email="jobfiksi@gmail.com",
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
 
             response_data = {
+                'message': 'Un email de confirmation a été envoyé. Veuillez vérifier votre boîte mail.',
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
                     'user_type': user.user_type,
                 },
-                'token': token.key,
-                'redirect_url': '/api/users/' + str(user.id) + '/',
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Vue pour récupérer les détails d'un utilisateur
+class ConfirmEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, uidb64, token, *args, **kwargs):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = get_object_or_404(User, pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+            lien_login = '<a href="http://localhost:8000/login/">Se connecter</a>'
+            return HttpResponse("Votre email a été confirmé avec succès. Vous pouvez maintenant vous connecter "+lien_login)
+        else:
+            return HttpResponse("Lien invalide ou expiré.", status=400)
+
+
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
@@ -157,17 +265,52 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response(user_serializer.data)  # Retourner les données de l'utilisateur, incluant les mises à jour
 
 
-# Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
-class listCandidatesView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+class ListCandidatesView(generics.ListAPIView):
+    queryset = Candidat.objects.all()
+    serializer_class = CandidatSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Authentification requise
 
-    def get(self, request):
-        if request.user.user_type == 'restaurant' or request.user.is_staff or request.user.is_superuser:
-            candidats = Candidat.objects.all()
-            serializer = CandidatSerializer(candidats, many=True)
-            return Response(serializer.data)
-        else:
-            raise PermissionDenied("Vous n'êtes pas autorisé à voir cette liste.")
+    def get_queryset(self):
+        # Filtrer les candidats par nom (si un nom est fourni)
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            decoded_search_query = unquote(search_query)
+
+            # Gestion du cas où l'on recherche par preference_salaire
+            if "preference_salaire:" in decoded_search_query:
+                try:
+                    # Extraire la valeur de preference_salaire
+                    salaire_value = decoded_search_query.split(":")[1]
+                    salaire_value = decimal.Decimal(salaire_value)  # Convertir en Decimal
+                    return Candidat.objects.filter(preference_salaire=salaire_value)
+                except (ValueError, decimal.InvalidOperation):
+                    raise serializers.ValidationError("La valeur du salaire doit être un nombre décimal valide.")
+            if "ville:" in decoded_search_query:
+                ville_value = decoded_search_query.split(":")[1]
+                return Candidat.objects.filter(ville__icontains=ville_value)
+            # Recherche sur les autres champs
+            return Candidat.objects.filter(
+                Q(nom__icontains=decoded_search_query) |  # Recherche par nom
+                Q(prenom__icontains=decoded_search_query) |  # Recherche par prénom
+                Q(niveau_etude__icontains=decoded_search_query) |  # Recherche par niveau d'étude
+                Q(experience__icontains=decoded_search_query) |  # Recherche par expérience
+                Q(formation__icontains=decoded_search_query) |  # Recherche par formation
+                Q(etablissement__icontains=decoded_search_query) |  # Recherche par établissement
+                Q(preference_salaire__icontains=decoded_search_query)  # Recherche par préférence de salaire
+            )
+
+        return Candidat.objects.all()
+
+
+class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Candidat.objects.all()
+    serializer_class = CandidatSerializer
+    permission_classes = [permissions.IsAuthenticated]  # Authentification requise
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [permissions.IsAuthenticated()]  # Authentification requise pour PUT, PATCH, DELETE
+        return super().get_permissions()  #
 
 
 def get_lyon_coordinates():
@@ -343,12 +486,6 @@ class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
 
-from django.contrib.auth import authenticate, login, logout
-from rest_framework import generics, permissions, status
-from rest_framework.response import Response
-from django.views.decorators.csrf import csrf_exempt
-
-
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -415,8 +552,9 @@ class CandidatProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         # On récupère l'utilisateur connecté
         user = self.request.user
+        candidt = Candidat.objects.get(user_id=user.id)
         # Puis on cherche le profil Candidat lié à cet utilisateur
-        return Candidat.objects.get(user_id=user.id)
+        return candidt
 
     def perform_update(self, serializer):
         # Cette méthode est appelée après validation des données.
