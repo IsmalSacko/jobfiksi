@@ -92,7 +92,6 @@ class Restaurant(models.Model):
     site_web = models.URLField(null=True, blank=True)
     notification_mail = models.BooleanField(default=False)
 
-
     def __str__(self):
         # return tous les champs du restaurant
         return f"{self.nom} {self.tel} {self.type} {self.site_web}"
@@ -124,18 +123,46 @@ class Annonce(models.Model):
     description = models.TextField(null=True, blank=True)
     date_publication = models.DateTimeField(auto_now_add=True)
     type_contrat = models.CharField(max_length=3, choices=TYPE_CONTRAT_CHOICES)
+    type_annonce = models.CharField(max_length=100, null=True, blank=True)
     salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     temps_travail = models.CharField(max_length=10, choices=TEMPS_TRAVAIL_CHOICES)
     nb_heures_semaine = models.IntegerField(null=True, blank=True)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='annonces')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='annonces')
     # Champs de géolocalisation
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     avantages = models.TextField(null=True, blank=True)
     mode_paiement = models.CharField(max_length=100, null=True, blank=True)
+
     def __str__(self):
         return self.titre
+
+
+# models.py
+class Chat(models.Model):
+    candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    content = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Chat between {self.candidat.nom} and {self.restaurant.nom}"
+
+    @property
+    def last_message(self):
+        # Retourne le dernier message du chat
+        return self.messages.order_by('-created_at').first()
+
+class Message(models.Model):
+    chat = models.ForeignKey(Chat, related_name="messages", on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)  # Utilisateur qui envoie le message
+    content = models.TextField()  # Contenu du message
+    created_at = models.DateTimeField(auto_now_add=True)  # Date de création du message
+    file = models.FileField(upload_to='chat_files/', null=True, blank=True)
+
+    def __str__(self):
+        return f"Message from {self.sender.username}: {self.content[:20]}..."
 
 
 # Modèle Candidature

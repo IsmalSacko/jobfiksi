@@ -54,7 +54,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'jobfiksi.wsgi.application'
-#
+
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',

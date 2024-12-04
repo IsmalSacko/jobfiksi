@@ -9,7 +9,12 @@ from .views import (
     UserListCreateRetrieveView,
     AdresseListCreateView,
     UserDetailView,
-    ListCandidatesView, AnnonceDetailView, CandidatProfileView, CandidatDetailView,
+    ListCandidatesView,
+    AnnonceDetailView,
+    CandidatProfileView,
+    CandidatDetailView,
+    ChatDetailView,
+    MessageCreateView, CurrentUserView,
 
 )
 
@@ -39,7 +44,10 @@ urlpatterns = [
          name='preference-restaurant-detail'),
 
     path('adresse/', AdresseListCreateView.as_view(), name='adresse-create'),
-
-
+    # Routes pour gérer les chats (conversations)
+    path('messages/', MessageCreateView.as_view(), name='message-create'),
+    path('messages/<int:pk>/', ChatDetailView.as_view(), name='chat-detail'),  # Liste des messages d'un chat
+    path('chats/<int:pk>/', ChatDetailView.as_view(), name='chat-detail'),  # Liste des messages d'un chat
+    path('users/me/', CurrentUserView.as_view(), name='current_user'),
 
 ]

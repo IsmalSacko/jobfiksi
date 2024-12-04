@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Candidat, Restaurant, Annonce, Candidature, Adresse, PreferenceCandidat, PreferenceRestaurant, Offre
+from .models import Candidat, Restaurant, Annonce, Candidature, Adresse, PreferenceCandidat, PreferenceRestaurant, \
+    Offre, Chat, Message
 
 
 class AdresseSerializer(serializers.ModelSerializer):
@@ -28,9 +29,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id','username', 'email', 'password', 'user_type']
+        fields = ['id', 'username', 'email', 'password', 'user_type']
         extra_kwargs = {'password': {'write_only': True}}
-
 
     def create(self, validated_data):
         user_type = validated_data.pop('user_type')
@@ -138,9 +138,28 @@ class AnnonceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Annonce
-        fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat', 'salaire', 'temps_travail',
+        fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat','type_annonce', 'salaire', 'temps_travail',
                   'statut',
                   'created_by', 'ville', 'avantages', 'nb_heures_semaine', 'mode_paiement']
+
+
+from rest_framework import serializers
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source="sender.username", read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'sender_username', 'content', 'created_at', 'chat']
+
+
+class ChatSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Chat
+        fields = ['id', 'candidat', 'restaurant', 'created_at', 'messages']
 
 
 class CandidatureSerializer(serializers.ModelSerializer):

@@ -1,10 +1,11 @@
 import decimal
 from email.utils import unquote
 
+from django.http import Http404
 from rest_framework.authtoken.models import Token
 from django.core.mail import send_mail
 from django.urls import reverse
-from rest_framework import status
+from rest_framework import status, viewsets
 import requests
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
@@ -17,7 +18,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
-    Offre, Annonce
+    Offre, Annonce, Chat, Message
 from .serializers import (
     UserCreateSerializer,
     RestaurantSerializer,
@@ -26,7 +27,7 @@ from .serializers import (
     PreferenceRestaurantSerializer,
     OffreSerializer,
     LoginSerializer,
-    AdresseSerializer, AnnonceSerializer
+    AdresseSerializer, AnnonceSerializer, ChatSerializer, MessageSerializer
 )
 
 User = get_user_model()
@@ -117,7 +118,6 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 # Vue pour récupérer les détails d'un utilisateur
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
@@ -199,36 +199,29 @@ class ListCandidatesView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]  # Authentification requise
 
     def get_queryset(self):
-        # Filtrer les candidats par nom (si un nom est fourni)
+        queryset = Candidat.objects.all()
         search_query = self.request.query_params.get('search', None)
+
         if search_query:
             decoded_search_query = unquote(search_query)
 
-            # Gestion du cas où l'on recherche par preference_salaire
-            if "preference_salaire:" in decoded_search_query:
-                try:
-                    # Extraire la valeur de preference_salaire
-                    salaire_value = decoded_search_query.split(":")[1]
-                    salaire_value = decimal.Decimal(salaire_value)  # Convertir en Decimal
-                    return Candidat.objects.filter(preference_salaire=salaire_value)
-                except (ValueError, decimal.InvalidOperation):
-                    raise serializers.ValidationError("La valeur du salaire doit être un nombre décimal valide.")
-            if "ville:" in decoded_search_query:
-                ville_value = decoded_search_query.split(":")[1]
-                return Candidat.objects.filter(ville__icontains=ville_value)
-            # Recherche sur les autres champs
-            return Candidat.objects.filter(
-                Q(nom__icontains=decoded_search_query) |  # Recherche par nom
-                Q(prenom__icontains=decoded_search_query) |  # Recherche par prénom
-                Q(niveau_etude__icontains=decoded_search_query) |  # Recherche par niveau d'étude
-                Q(experience__icontains=decoded_search_query) |  # Recherche par expérience
-                Q(formation__icontains=decoded_search_query) |  # Recherche par formation
-                Q(etablissement__icontains=decoded_search_query) |  # Recherche par établissement
-                Q(preference_salaire__icontains=decoded_search_query)  # Recherche par préférence de salaire
-            )
+            # Construire une condition Q dynamique pour tous les champs pertinents
+            search_filter = Q()
+            fields_to_search = [
+                'nom', 'prenom', 'tel', 'niveau_etude', 'compentence', 'experience',
+                'etablissement', 'formation', 'ville', 'pays', 'plage_horaire',
+                'disponibilite', 'preference_salaire', 'salaire_min', 'salaire_max',
+                'genre', 'type_de_poste_recherche', 'type_de_contrat_recherche',
+                'langues_parlees', 'iban', 'secu_sociale','code_postal'
+            ]
 
-        return Candidat.objects.all()
+            for field in fields_to_search:
+                search_filter |= Q(**{f"{field}__icontains": decoded_search_query})
 
+            # Ajouter le filtre à la requête
+            queryset = queryset.filter(search_filter)
+
+        return queryset
 
 
 class CandidatDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -263,10 +256,12 @@ def get_lyon_coordinates():
     # Coordonnées par défaut pour Lyon
     return 45.764043, 4.835659
 
+from urllib.parse import unquote
+from django.db.models import Q
+from geopy.distance import geodesic
 
 # Coordonnées de Lyon (par défaut)
 LYON_COORDINATES = (45.764043, 4.835659)
-
 
 class AnnonceListCreateView(generics.ListCreateAPIView):
     serializer_class = AnnonceSerializer
@@ -284,14 +279,21 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
         search_query = self.request.query_params.get('search', None)
         if search_query:
             decoded_search_query = unquote(search_query)
+
+            # Appliquer la recherche sur plusieurs champs
             queryset = queryset.filter(
                 Q(titre__icontains=decoded_search_query) |  # Recherche par titre
                 Q(description__icontains=decoded_search_query) |  # Recherche par description
                 Q(type_contrat__icontains=decoded_search_query) |  # Recherche par type de contrat
+                Q(type_annonce__icontains=decoded_search_query) |  # Recherche par type d'annonce
                 Q(temps_travail__icontains=decoded_search_query) |  # Recherche par temps de travail
+                Q(statut__icontains=decoded_search_query) |  # Recherche par statut
+                Q(avantages__icontains=decoded_search_query) |  # Recherche par avantages
+                Q(mode_paiement__icontains=decoded_search_query) |  # Recherche par mode de paiement
+                Q(created_by__username__icontains=decoded_search_query) |  # Recherche par créateur
                 Q(salaire__icontains=decoded_search_query) |  # Recherche par salaire
-                Q(created_by__in=User.objects.filter(username__icontains=decoded_search_query))
-                # Recherche par créateur
+                Q(nb_heures_semaine__icontains=decoded_search_query)|  # Recherche par nombre d'heures
+                Q(created_by__in=User.objects.filter(username__icontains=decoded_search_query))  # Recherche par créateur
             )
 
         # Récupérer la position de l'utilisateur (ou utiliser Lyon par défaut)
@@ -341,7 +343,7 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
         longitude = self.request.data.get('longitude', None)
 
         if not latitude or not longitude:
-            latitude, longitude = get_lyon_coordinates()
+            latitude, longitude = LYON_COORDINATES
 
         serializer.save(
             created_by=self.request.user,
@@ -507,3 +509,46 @@ class RestaurantProfileView(generics.RetrieveUpdateAPIView):
         # Elle met à jour le profil du restaurant
         restaurant = self.get_object()
         serializer.save(restaurant=restaurant)
+
+
+class MessageCreateView(generics.ListCreateAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # tous les l'utilisateur connecté
+        return Message.objects.all()
+
+    def perform_create(self, serializer):
+        chat_id = self.request.data.get("chat")
+        chat = Chat.objects.get(id=chat_id)
+
+        # Associer le message à l'utilisateur connecté et au chat
+        serializer.save(chat=chat, sender=self.request.user)
+
+
+# Vue pour gérer les chats (conversations)
+class ChatDetailView(generics.RetrieveAPIView):
+    serializer_class = ChatSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Chat.objects.all()  # Pas de filtrage par utilisateur ici
+
+    def get_object(self):
+        # Récupère le chat par son ID, sans filtrage par utilisateur
+        obj = Chat.objects.filter(
+            id=self.kwargs['pk']).first()  # Utilise first() pour éviter une erreur si aucun chat n'est trouvé
+        if obj is None:
+            raise Http404("No Chat matches the given query.")
+        return obj
+
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+        })
