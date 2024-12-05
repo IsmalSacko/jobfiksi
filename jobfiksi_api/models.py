@@ -217,6 +217,27 @@ class Candidature(models.Model):
         on_delete=models.CASCADE,
         related_name='candidatures'
     )
+    nom = models.CharField(max_length=100, null=True, blank=True)
+    prenom = models.CharField(max_length=100, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    tel = models.CharField(max_length=20, null=True, blank=True)
+    ville = models.CharField(max_length=100, null=True, blank=True)
+    code_postal = models.CharField(max_length=10, null=True, blank=True)
+    pays = models.CharField(max_length=100, null=True, blank=True)
+    disponibilite = models.TextField(choices=[
+        ('Lundi', 'Lundi'),
+        ('Mardi', 'Mardi'),
+        ('Mercredi', 'Mercredi'),
+        ('Jeudi', 'Jeudi'),
+        ('Vendredi', 'Vendredi'),
+        ('Samedi', 'Samedi'),
+        ('Dimanche', 'Dimanche'),
+        ('Tous les jours', 'Tous les jours')],max_length=100, null=True, blank=True)
+    crenaux_horaire = models.CharField(max_length=255, null=True, blank=True,choices=[
+        ('8h-12h', 'Matin : 8h-12h'),
+        ('12h-15h', 'Midi : 12h-15h'),
+        ('18h-22h', 'Soir : 18h-22h'),
+        ('22h-6h', 'Nuit : 22h-6h')],)
     date_candidature = models.DateField(auto_now_add=True)
     ad_cv = models.FileField(upload_to='candidatures/', null=True, blank=True)
     message = models.TextField(null=True, blank=True)

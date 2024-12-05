@@ -141,5 +141,8 @@ class CandidatureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Candidature
-        fields = ['id', 'candidat', 'candidat_nom', 'annonce', 'annonce_titre', 'date_candidature', 'ad_cv', 'message']
+        fields = ['id', 'candidat', 'candidat_nom', 'annonce', 'annonce_titre',
+                  'nom', 'prenom', 'tel', 'email', 'ville', 'code_postal', 'pays',
+                  'disponibilite', 'crenaux_horaire', 'date_candidature', 'ad_cv', 'message'
+                  ]
         read_only_fields = ['candidat', 'date_candidature', 'annonce_titre', 'candidat_nom']
