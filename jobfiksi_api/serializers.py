@@ -1,19 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Candidat, Restaurant, Annonce, Candidature, Adresse, PreferenceCandidat, PreferenceRestaurant, \
-    Offre, Chat, Message
-
-
-class AdresseSerializer(serializers.ModelSerializer):
-    # created_by = serializers.ReadOnlyField(source='created_by.username')
-    rue = serializers.CharField(required=False, allow_blank=True)
-    ville = serializers.CharField(required=False, allow_blank=True)
-    code_postal = serializers.CharField(required=False, allow_blank=True)
-    pays = serializers.CharField(required=False, allow_blank=True)
-
-    class Meta:
-        model = Adresse
-        fields = ['rue', 'ville', 'code_postal', 'pays']
+from .models import Candidat, Restaurant, Annonce, Candidature
 
 
 class LoginSerializer(serializers.Serializer):
@@ -25,41 +12,45 @@ User = get_user_model()
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    user_type = serializers.ChoiceField(choices=User.USER_TYPE_CHOICES)
+    user_type = serializers.ChoiceField(choices=get_user_model().USER_TYPE_CHOICES)
 
     class Meta:
-        model = User
+        model = get_user_model()
         fields = ['id', 'username', 'email', 'password', 'user_type']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
+        # Récupérer le type d'utilisateur
         user_type = validated_data.pop('user_type')
-        user = User.objects.create_user(
+
+        # Créer l'utilisateur
+        user = get_user_model().objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
             user_type=user_type
         )
 
-        # Créer le profil correspondant selon le type
+        # Créer le profil correspondant (Candidat ou Restaurant) en fonction du type
         if user_type == 'candidat':
-            Candidat.objects.create(user=user)
+            Candidat.objects.create(user=user)  # Créer un profil Candidat
         elif user_type == 'restaurant':
-            Restaurant.objects.create(user=user)
+            Restaurant.objects.create(user=user)  # Créer un profil Restaurant
 
         return user
 
 
 class CandidatSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
+    age = serializers.ReadOnlyField()
 
     class Meta:
         model = Candidat
         fields = [
             'id',  # Ajout de l'id pour permettre la mise à jour
-            'nom', 'prenom', 'tel', 'date_naissance', 'genre',
+            'nom', 'prenom', 'tel', 'date_naissance', 'age', 'genre',
             'cv', 'lettre_motivation', 'autres_documents', 'niveau_etude',
-            'compentence', 'experience', 'etablissement', 'formation', 'date_debut',
+            'specilaite', 'experience', 'etablissement', 'formation', 'date_debut',
             'date_fin', 'image', 'ville', 'num_et_rue', 'code_postal', 'pays', 'disponibilite',
             'preference_salaire', 'salaire_min', 'salaire_max',
             'plage_horaire', 'iban', 'secu_sociale', 'notification_mail',
@@ -82,7 +73,7 @@ class CandidatSerializer(serializers.ModelSerializer):
         # Mise à jour des autres champs
         for field in [
             'nom', 'prenom', 'tel', 'date_naissance', 'niveau_etude',
-            'compentence', 'experience', 'etablissement', 'formation',
+            'specilaite', 'experience', 'etablissement', 'formation',
             'date_debut', 'date_fin', 'ville', 'num_et_rue', 'code_postal', 'pays',
             'disponibilite', 'plage_horaire', 'iban', 'secu_sociale',
             'preference_salaire', 'salaire_min', 'salaire_max',
@@ -115,7 +106,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'pays',
             'site_web',
             'notification_mail',
-            'type'
+            'type_de_restaurant',
 
         ]
 
@@ -123,7 +114,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
         # Mise à jour des autres champs et garder les anciennes valeurs si non fournies
         for field in [
             'nom', 'email_pro', 'tel', 'ville', 'image', 'num_et_rue', 'ville', 'code_postal', 'pays', 'site_web',
-            'notification_mail'
+            'notification_mail', 'type_de_restaurant'
         ]:
             setattr(instance, field, validated_data.get(field, getattr(instance, field)))
 
@@ -134,54 +125,21 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
 class AnnonceSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
-    ville = serializers.StringRelatedField(source='ville.nom', read_only=True)
 
     class Meta:
         model = Annonce
-        fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat','type_annonce', 'salaire', 'temps_travail',
-                  'statut',
-                  'created_by', 'ville', 'avantages', 'nb_heures_semaine', 'mode_paiement']
-
-
-from rest_framework import serializers
-
-
-class MessageSerializer(serializers.ModelSerializer):
-    sender_username = serializers.CharField(source="sender.username", read_only=True)
-
-    class Meta:
-        model = Message
-        fields = ['id', 'sender', 'sender_username', 'content', 'created_at', 'chat']
-
-
-class ChatSerializer(serializers.ModelSerializer):
-    messages = MessageSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Chat
-        fields = ['id', 'candidat', 'restaurant', 'created_at', 'messages']
+        fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat', 'type_annonce', 'type_de_travail',
+                  'salaire', 'temps_travail', 'statut', 'created_by', 'ville', 'code_postal', 'pays',
+                  'avantages', 'nb_heures_semaine', 'horaire_travail', 'jours_de_travail', 'mode_paiement',
+                  'experience',
+                  ]
 
 
 class CandidatureSerializer(serializers.ModelSerializer):
+    candidat_nom = serializers.ReadOnlyField(source='candidat.user.username')
+    annonce_titre = serializers.ReadOnlyField(source='annonce.titre')
+
     class Meta:
         model = Candidature
-        fields = ['candidat', 'annonce', 'date_candidature']
-
-
-class PreferenceCandidatSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PreferenceCandidat
-        fields = ['candidat', 'flexibilite_deplacement', 'secteur', 'type_contrat', 'type_restaurant',
-                  'horaire_travail', 'possibilite_formation', 'possibilite_contrat_direct']
-
-
-class PreferenceRestaurantSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PreferenceRestaurant
-        fields = ['restaurant', 'niveau_etude', 'possibilite_former', 'possibilite_debutant', 'horaire_travail']
-
-
-class OffreSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Offre
-        fields = ['annonce']
+        fields = ['id', 'candidat', 'candidat_nom', 'annonce', 'annonce_titre', 'date_candidature', 'ad_cv', 'message']
+        read_only_fields = ['candidat', 'date_candidature', 'annonce_titre', 'candidat_nom']

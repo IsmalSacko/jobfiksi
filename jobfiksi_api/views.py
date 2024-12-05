@@ -1,42 +1,29 @@
-import decimal
 from email.utils import unquote
 
-from django.http import Http404
-from rest_framework.authtoken.models import Token
-from django.core.mail import send_mail
-from django.urls import reverse
-from rest_framework import status, viewsets
 import requests
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from geopy.distance import geodesic
 from rest_framework import generics, permissions
 from rest_framework import serializers
+from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Restaurant, Adresse, Candidature, PreferenceCandidat, PreferenceRestaurant, \
-    Offre, Annonce, Chat, Message
+from .models import Restaurant, Candidature, Annonce
 from .serializers import (
     UserCreateSerializer,
     RestaurantSerializer,
     CandidatureSerializer,
-    PreferenceCandidatSerializer,
-    PreferenceRestaurantSerializer,
-    OffreSerializer,
-    LoginSerializer,
-    AdresseSerializer, AnnonceSerializer, ChatSerializer, MessageSerializer
+    LoginSerializer, AnnonceSerializer,
+
 )
 
 User = get_user_model()
-
-
-class AdresseListCreateView(generics.ListCreateAPIView):
-    queryset = Adresse.objects.all()
-    serializer_class = AdresseSerializer
-    permission_classes = [permissions.AllowAny]
 
 
 class UserListCreateRetrieveView(generics.ListCreateAPIView):
@@ -182,12 +169,10 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 # Récupérer la liste des candidats si l'utilisateur est un recruteur ou administrateur
-from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import permissions
-from urllib.parse import unquote
 
 from .models import Candidat
 from .serializers import CandidatSerializer
@@ -208,11 +193,11 @@ class ListCandidatesView(generics.ListAPIView):
             # Construire une condition Q dynamique pour tous les champs pertinents
             search_filter = Q()
             fields_to_search = [
-                'nom', 'prenom', 'tel', 'niveau_etude', 'compentence', 'experience',
+                'nom', 'prenom', 'tel', 'niveau_etude', 'disponibilite', 'experience',
                 'etablissement', 'formation', 'ville', 'pays', 'plage_horaire',
                 'disponibilite', 'preference_salaire', 'salaire_min', 'salaire_max',
                 'genre', 'type_de_poste_recherche', 'type_de_contrat_recherche',
-                'langues_parlees', 'iban', 'secu_sociale','code_postal'
+                'langues_parlees', 'iban', 'secu_sociale', 'code_postal'
             ]
 
             for field in fields_to_search:
@@ -256,12 +241,14 @@ def get_lyon_coordinates():
     # Coordonnées par défaut pour Lyon
     return 45.764043, 4.835659
 
+
 from urllib.parse import unquote
 from django.db.models import Q
 from geopy.distance import geodesic
 
 # Coordonnées de Lyon (par défaut)
 LYON_COORDINATES = (45.764043, 4.835659)
+
 
 class AnnonceListCreateView(generics.ListCreateAPIView):
     serializer_class = AnnonceSerializer
@@ -292,8 +279,9 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
                 Q(mode_paiement__icontains=decoded_search_query) |  # Recherche par mode de paiement
                 Q(created_by__username__icontains=decoded_search_query) |  # Recherche par créateur
                 Q(salaire__icontains=decoded_search_query) |  # Recherche par salaire
-                Q(nb_heures_semaine__icontains=decoded_search_query)|  # Recherche par nombre d'heures
-                Q(created_by__in=User.objects.filter(username__icontains=decoded_search_query))  # Recherche par créateur
+                Q(nb_heures_semaine__icontains=decoded_search_query) |  # Recherche par nombre d'heures
+                Q(created_by__in=User.objects.filter(username__icontains=decoded_search_query))
+                # Recherche par créateur
             )
 
         # Récupérer la position de l'utilisateur (ou utiliser Lyon par défaut)
@@ -389,32 +377,68 @@ def AnnonceView(request):
     return render(request, 'jobfiksi_api/auth/annonce.html')
 
 
-# Vue pour gérer les candidatures
 class CandidatureListCreateView(generics.ListCreateAPIView):
-    queryset = Candidature.objects.all()
     serializer_class = CandidatureSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtrer les candidatures pour le candidat connecté
+        user = self.request.user
+        if user.user_type == 'candidat':
+            return Candidature.objects.filter(candidat__user=user)
+        return Candidature.objects.none()
+
+    def perform_create(self, serializer):
+        # Récupérer l'annonce associée à la candidature
+        annonce_id = self.request.data.get('annonce')
+        if not annonce_id:
+            raise serializers.ValidationError("L'annonce est obligatoire.")
+
+        try:
+            annonce = Annonce.objects.get(id=annonce_id)
+        except Annonce.DoesNotExist:
+            raise serializers.ValidationError("L'annonce spécifiée n'existe pas.")
+
+        # Vérifier si le candidat est connecté
+        try:
+            candidat = Candidat.objects.get(user=self.request.user)
+        except Candidat.DoesNotExist:
+            raise ValidationError("Vous n'êtes pas autorisé à postuler à une annonce.")
+
+        # Vérifier si le candidat a déjà postulé à cette annonce
+        candidature_exists = Candidature.objects.filter(candidat=candidat, annonce=annonce).exists()
+        if candidature_exists:
+            raise serializers.ValidationError("Vous avez déjà postulé à cette annonce.")
+
+        # Créer la candidature
+        serializer.save(candidat=candidat, annonce=annonce)
 
 
-# Vue pour récupérer les préférences d'un candidat
-class PreferenceCandidatDetailView(generics.RetrieveUpdateAPIView):
-    queryset = PreferenceCandidat.objects.all()
-    serializer_class = PreferenceCandidatSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
+# Vue pour gérer les détails d'une candidature
+class CandidatureDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CandidatureSerializer
+    permission_classes = [IsAuthenticated]
 
-# Vue pour récupérer les préférences d'un restaurant
-class PreferenceRestaurantDetailView(generics.RetrieveUpdateAPIView):
-    queryset = PreferenceRestaurant.objects.all()
-    serializer_class = PreferenceRestaurantSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        # Filtrer les candidatures pour le candidat connecté
+        user = self.request.user
+        if user.user_type == 'candidat':
+            return Candidature.objects.filter(candidat__user=user)
+        return Candidature.objects.none()
 
+    def perform_update(self, serializer):
+        # Vérifier que l'utilisateur est le créateur de la candidature
+        candidature = self.get_object()
+        if self.request.user != candidature.candidat.user:
+            raise PermissionDenied("Vous n'êtes pas autorisé à modifier cette candidature.")
+        serializer.save()
 
-# Vue pour gérer les offres
-class OffreDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Offre.objects.all()
-    serializer_class = OffreSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def perform_destroy(self, instance):
+        # Vérifier que l'utilisateur est le créateur de la candidature
+        if self.request.user != instance.candidat.user:
+            raise PermissionDenied("Vous n'êtes pas autorisé à supprimer cette candidature.")
+        instance.delete()
 
 
 class LoginView(generics.GenericAPIView):
@@ -509,37 +533,6 @@ class RestaurantProfileView(generics.RetrieveUpdateAPIView):
         # Elle met à jour le profil du restaurant
         restaurant = self.get_object()
         serializer.save(restaurant=restaurant)
-
-
-class MessageCreateView(generics.ListCreateAPIView):
-    serializer_class = MessageSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # tous les l'utilisateur connecté
-        return Message.objects.all()
-
-    def perform_create(self, serializer):
-        chat_id = self.request.data.get("chat")
-        chat = Chat.objects.get(id=chat_id)
-
-        # Associer le message à l'utilisateur connecté et au chat
-        serializer.save(chat=chat, sender=self.request.user)
-
-
-# Vue pour gérer les chats (conversations)
-class ChatDetailView(generics.RetrieveAPIView):
-    serializer_class = ChatSerializer
-    permission_classes = [IsAuthenticated]
-    queryset = Chat.objects.all()  # Pas de filtrage par utilisateur ici
-
-    def get_object(self):
-        # Récupère le chat par son ID, sans filtrage par utilisateur
-        obj = Chat.objects.filter(
-            id=self.kwargs['pk']).first()  # Utilise first() pour éviter une erreur si aucun chat n'est trouvé
-        if obj is None:
-            raise Http404("No Chat matches the given query.")
-        return obj
 
 
 class CurrentUserView(APIView):

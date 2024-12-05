@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Adresse, CustomUser, Candidat, Restaurant, Annonce, Candidature, PreferenceCandidat, \
-    PreferenceRestaurant, Offre
+from .models import CustomUser, Candidat, Restaurant, Annonce, Candidature
 
 
 # Personnalisation de l'affichage de l'adresse dans l'admin
@@ -41,31 +40,10 @@ class CandidatureAdmin(admin.ModelAdmin):
     search_fields = ('candidat__nom', 'annonce__titre')
 
 
-# Personnalisation de l'affichage de la PreferenceCandidat dans l'admin
-class PreferenceCandidatAdmin(admin.ModelAdmin):
-    list_display = ('candidat', 'secteur', 'type_contrat', 'type_restaurant', 'horaire_travail')
-    search_fields = ('candidat__nom', 'secteur')
-
-
-# Personnalisation de l'affichage de la PreferenceRestaurant dans l'admin
-class PreferenceRestaurantAdmin(admin.ModelAdmin):
-    list_display = ('restaurant', 'niveau_etude', 'possibilite_former', 'horaire_travail')
-    search_fields = ('restaurant__nom', 'niveau_etude')
-
-
-# Personnalisation de l'affichage de l'Offre dans l'admin
-class OffreAdmin(admin.ModelAdmin):
-    list_display = ('annonce',)
-    search_fields = ('annonce__titre',)
-
-
 # Enregistrement des modèles avec les personnalisations
-admin.site.register(Adresse, AdresseAdmin)
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Candidat, CandidatAdmin)
 admin.site.register(Restaurant, RestaurantAdmin)
 admin.site.register(Annonce, AnnonceAdmin)
 admin.site.register(Candidature, CandidatureAdmin)
-admin.site.register(PreferenceCandidat, PreferenceCandidatAdmin)
-admin.site.register(PreferenceRestaurant, PreferenceRestaurantAdmin)
-admin.site.register(Offre, OffreAdmin)

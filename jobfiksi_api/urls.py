@@ -4,17 +4,11 @@ from .views import (
     RestaurantProfileView,
     AnnonceListCreateView,
     CandidatureListCreateView,
-    PreferenceCandidatDetailView,
-    PreferenceRestaurantDetailView,
-    UserListCreateRetrieveView,
-    AdresseListCreateView,
     UserDetailView,
     ListCandidatesView,
     AnnonceDetailView,
     CandidatProfileView,
-    CandidatDetailView,
-    ChatDetailView,
-    MessageCreateView, CurrentUserView,
+    CandidatDetailView, UserListCreateRetrieveView, CandidatureDetailView,
 
 )
 
@@ -35,19 +29,7 @@ urlpatterns = [
 
     # Routes pour gérer les candidatures
     path('candidatures/', CandidatureListCreateView.as_view(), name='candidature-list-create'),
+    path('candidatures/<int:pk>/', CandidatureDetailView.as_view(), name='candidature-detail'),
 
-    # Routes pour récupérer et mettre à jour les préférences d'un candidat
-    path('candidats/preferences/<int:pk>/', PreferenceCandidatDetailView.as_view(), name='preference-candidat-detail'),
-
-    # Routes pour récupérer et mettre à jour les préférences d'un restaurant
-    path('restaurants/preferences/<int:pk>/', PreferenceRestaurantDetailView.as_view(),
-         name='preference-restaurant-detail'),
-
-    path('adresse/', AdresseListCreateView.as_view(), name='adresse-create'),
-    # Routes pour gérer les chats (conversations)
-    path('messages/', MessageCreateView.as_view(), name='message-create'),
-    path('messages/<int:pk>/', ChatDetailView.as_view(), name='chat-detail'),  # Liste des messages d'un chat
-    path('chats/<int:pk>/', ChatDetailView.as_view(), name='chat-detail'),  # Liste des messages d'un chat
-    path('users/me/', CurrentUserView.as_view(), name='current_user'),
 
 ]
