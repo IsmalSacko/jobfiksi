@@ -88,7 +88,6 @@ class CandidatSerializer(serializers.ModelSerializer):
 
 class RestaurantSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    type = serializers.CharField(source='user.user_type', read_only=True)
 
     class Meta:
         model = Restaurant
@@ -124,16 +123,28 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
 
 class AnnonceSerializer(serializers.ModelSerializer):
-    created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
+    # created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
+    # Utilise une méthode personnalisée pour afficher le nom du restaurant
+    created_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Annonce
-        fields = ['id', 'titre', 'description', 'date_publication', 'type_contrat', 'type_annonce', 'type_de_travail',
-                  'salaire', 'temps_travail', 'statut', 'created_by', 'ville', 'code_postal', 'pays',
+        fields = ['id', 'created_by', 'titre', 'description', 'date_publication', 'type_contrat', 'type_annonce',
+                  'type_de_travail',
+                  'salaire', 'temps_travail', 'statut', 'ville', 'code_postal', 'pays',
                   'avantages', 'nb_heures_semaine', 'horaire_travail', 'jours_de_travail', 'mode_paiement',
                   'experience',
                   ]
 
+    def get_created_by(self, obj):
+        """
+        Retourne le nom du restaurant si disponible,
+        sinon retourne le username de l'utilisateur.
+        """
+        user = obj.created_by  # L'utilisateur qui a créé l'annonce
+        if hasattr(user, 'restaurant') and user.restaurant:
+            return user.restaurant.nom  # Nom du restaurant associé
+        return user.username  # Nom d'utilisateur par défaut
 
 class CandidatureSerializer(serializers.ModelSerializer):
     candidat_nom = serializers.ReadOnlyField(source='candidat.user.username')
