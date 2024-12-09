@@ -123,9 +123,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
 
 class AnnonceSerializer(serializers.ModelSerializer):
-    # created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
-    # Utilise une méthode personnalisée pour afficher le nom du restaurant
-    created_by = serializers.SerializerMethodField()
+    created_by = serializers.ReadOnlyField(source='created_by.username')  # Récupère le nom d'utilisateur
 
     class Meta:
         model = Annonce
@@ -137,14 +135,8 @@ class AnnonceSerializer(serializers.ModelSerializer):
                   ]
 
     def get_created_by(self, obj):
-        """
-        Retourne le nom du restaurant si disponible,
-        sinon retourne le username de l'utilisateur.
-        """
-        user = obj.created_by  # L'utilisateur qui a créé l'annonce
-        if hasattr(user, 'restaurant') and user.restaurant:
-            return user.restaurant.nom  # Nom du restaurant associé
-        return user.username  # Nom d'utilisateur par défaut
+        return obj.created_by.username
+
 
 class CandidatureSerializer(serializers.ModelSerializer):
     candidat_nom = serializers.ReadOnlyField(source='candidat.user.username')
