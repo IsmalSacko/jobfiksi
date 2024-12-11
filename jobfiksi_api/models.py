@@ -207,8 +207,7 @@ class Annonce(models.Model):
 
 
 class Candidature(models.Model):
-    candidat = models.ForeignKey(
-        Candidat,
+    candidat = models.ForeignKey(Candidat,
         on_delete=models.CASCADE,
         related_name='candidatures'
     )
@@ -251,3 +250,6 @@ class Candidature(models.Model):
         verbose_name = 'Candidature'
         verbose_name_plural = 'Candidatures'
         ordering = ['date_candidature']
+
+
+# class Adresse(models.Model):

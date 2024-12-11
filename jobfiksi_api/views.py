@@ -414,7 +414,6 @@ class CandidatureListCreateView(generics.ListCreateAPIView):
         serializer.save(candidat=candidat, annonce=annonce)
 
 
-
 # Vue pour gérer les détails d'une candidature
 class CandidatureDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CandidatureSerializer
@@ -545,3 +544,13 @@ class CurrentUserView(APIView):
             "username": user.username,
             "email": user.email,
         })
+
+
+# retrouver tous les restaurants
+class RestaurantListView(generics.ListAPIView):
+    queryset = Restaurant.objects.all()
+    serializer_class = RestaurantSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)

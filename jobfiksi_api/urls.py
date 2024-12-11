@@ -8,7 +8,7 @@ from .views import (
     ListCandidatesView,
     AnnonceDetailView,
     CandidatProfileView,
-    CandidatDetailView, UserListCreateRetrieveView, CandidatureDetailView,
+    CandidatDetailView, UserListCreateRetrieveView, CandidatureDetailView, RestaurantListView,
 
 )
 
@@ -20,6 +20,8 @@ urlpatterns = [
     # Route pour lister les candidats
     path('candidats/', ListCandidatesView.as_view(), name='candidat-list'),
     path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
+    # Route pour lister les restaurants
+    path('restaurants/', RestaurantListView.as_view(), name='restaurant-list'),
     # Routes pour les restaurants
     path('restaurants/profile/', RestaurantProfileView.as_view(), name='restaurant-profile'),
     path('candidats/profile/', CandidatProfileView.as_view(), name='candidat-profile'),
