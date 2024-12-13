@@ -91,14 +91,16 @@ class AnnonceSerializer(serializers.ModelSerializer):
 
 
 class CandidatureSerializer(serializers.ModelSerializer):
-    candidat = serializers.StringRelatedField()
-    annonce = serializers.StringRelatedField()
+    candidat = serializers.StringRelatedField(read_only=True)  # Toujours en lecture seule
+    annonce = serializers.PrimaryKeyRelatedField(
+        queryset=Annonce.objects.all(),  # Permet de choisir une annonce existante
+    )
 
     class Meta:
         model = Candidature
         fields = ['id', 'candidat', 'annonce', 'nom', 'prenom', 'email', 'tel', 'ville', 'code_postal', 'pays',
                   'disponibilite', 'crenaux_horaire', 'date_candidature', 'cv', 'message', 'statut', 'note']
-        read_only_fields = ['date_candidature', 'candidat', 'annonce']
+        read_only_fields = ['date_candidature', 'candidat']
 
     def update(self, instance, validated_data):
         statut = validated_data.get('statut', None)
@@ -132,7 +134,9 @@ class ContractSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contract
         fields = [
-            'id', 'restaurant', 'restaurant_name', 'candidat', 'candidat_name', 'date_signature', 'date_debut',
-            'date_fin', 'type_contrat', 'salaire', 'horaire_travail', 'statut', 'restaurant_comments',
-            'candidat_comments',
+            'id', 'restaurant', 'candidat', 'restaurant_name', 'candidat_name',
+            'date_signature', 'date_debut', 'date_fin', 'type_contrat',
+            'salaire', 'horaire_travail', 'statut', 'restaurant_comments',
+            'candidat_comments'
         ]
+        read_only_fields = ['statut', 'restaurant_name', 'candidat_name']

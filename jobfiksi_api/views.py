@@ -310,34 +310,62 @@ class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CandidatureListCreateView(generics.ListCreateAPIView):
+    """
+    Vue pour lister les candidatures d'un utilisateur de type candidat
+    et afficher les annonces disponibles pour une nouvelle candidature.
+    """
     serializer_class = CandidatureSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
+        # Filtrer uniquement les candidatures du candidat connecté
         if user.user_type == 'candidat':
             return Candidature.objects.filter(candidat__user=user)
         return Candidature.objects.none()
 
+    def list(self, request, *args, **kwargs):
+        """
+        Retourne les candidatures existantes et la liste des annonces disponibles.
+        """
+        # Liste des candidatures du candidat connecté
+        candidatures = self.get_queryset()
+        candidature_serializer = self.get_serializer(candidatures, many=True)
+
+        # Liste des annonces disponibles
+        annonces = Annonce.objects.all()
+        annonce_serializer = AnnonceSerializer(annonces, many=True)
+
+        # Combiner les deux dans une réponse
+        return Response({
+            "candidatures": candidature_serializer.data,
+            "annonces": annonce_serializer.data,
+        })
+
     def perform_create(self, serializer):
+        # Récupérer l'annonce pour la candidature
         annonce_id = self.request.data.get('annonce')
         if not annonce_id:
-            raise serializers.ValidationError("L'annonce est obligatoire.")
+            raise serializers.ValidationError({"annonce": "L'annonce est obligatoire."})
 
+        # Vérification si l'annonce existe
         try:
             annonce = Annonce.objects.get(id=annonce_id)
         except Annonce.DoesNotExist:
-            raise serializers.ValidationError("L'annonce spécifiée n'existe pas.")
+            raise serializers.ValidationError({"annonce": "L'annonce spécifiée n'existe pas."})
 
+        # Vérifier si l'utilisateur connecté est un candidat
         try:
             candidat = Candidat.objects.get(user=self.request.user)
         except Candidat.DoesNotExist:
-            raise ValidationError("Vous n'êtes pas autorisé à postuler à une annonce.")
+            raise serializers.ValidationError({"candidat": "Vous n'êtes pas autorisé à postuler à une annonce."})
 
+        # Vérifier si une candidature existe déjà pour cette annonce
         candidature_exists = Candidature.objects.filter(candidat=candidat, annonce=annonce).exists()
         if candidature_exists:
-            raise serializers.ValidationError("Vous avez déjà postulé à cette annonce.")
+            raise serializers.ValidationError({"candidature": "Vous avez déjà postulé à cette annonce."})
 
+        # Enregistrer la candidature
         serializer.save(candidat=candidat, annonce=annonce)
 
 
@@ -504,17 +532,39 @@ class SendMessageView(APIView):
         serializer_class = ContractSerializer
         permission_classes = [IsAuthenticated]  # Assurez-vous que l'utilisateur est authentifié
 
-    class ContractListView(generics.ListAPIView):
+class ContractListCreateView(generics.ListCreateAPIView):
+        """
+        Vue pour lister et créer des contrats.
+        """
         serializer_class = ContractSerializer
         permission_classes = [IsAuthenticated]
 
         def get_queryset(self):
             user = self.request.user
-
-            if user.user_type == 'restaurant':
-                # Retourner tous les contrats du restaurant connecté
-                return Contract.objects.filter(restaurant=user.restaurant_profile)
-            elif user.user_type == 'candidat':
-                # Retourner tous les contrats du candidat connecté
-                return Contract.objects.filter(candidat=user.candidat_profile)
+            # Si l'utilisateur est un restaurant, afficher ses contrats
+            if hasattr(user, 'restaurant'):
+                return Contract.objects.filter(restaurant=user.restaurant)
+            # Si l'utilisateur est un candidat, afficher ses contrats
+            if hasattr(user, 'candidat'):
+                return Contract.objects.filter(candidat=user.candidat)
             return Contract.objects.none()
+
+        def perform_create(self, serializer):
+            user = self.request.user
+            # Seul un restaurant peut créer un contrat
+            if not hasattr(user, 'restaurant'):
+                raise serializers.ValidationError("Seuls les restaurants peuvent générer des contrats.")
+
+            restaurant = user.restaurant
+            candidat_id = self.request.data.get('candidat')
+            if not candidat_id:
+                raise serializers.ValidationError({"candidat": "Le candidat est obligatoire pour générer un contrat."})
+
+            # Valider si le candidat existe
+            try:
+                candidat = Candidat.objects.get(id=candidat_id)
+            except Candidat.DoesNotExist:
+                raise serializers.ValidationError({"candidat": "Le candidat spécifié n'existe pas."})
+
+            # Créer le contrat
+            serializer.save(restaurant=restaurant, candidat=candidat)

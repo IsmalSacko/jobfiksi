@@ -67,7 +67,7 @@ WSGI_APPLICATION = 'jobfiksi.wsgi.application'
 #             'charset': 'utf8mb4',
 #         },
 #     }
-# }
+}
 
 DATABASES = {
     'default': {
