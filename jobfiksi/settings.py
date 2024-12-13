@@ -60,7 +60,7 @@ WSGI_APPLICATION = 'jobfiksi.wsgi.application'
 #         'ENGINE': 'django.db.backends.mysql',
 #         'NAME': 'jobfiksi',
 #         'USER': 'root',
-#         'PASSWORD': 'root',
+#         'PASSWORD': '',
 #         'HOST': 'localhost',
 #         'PORT': '3306',
 #         'OPTIONS': {
@@ -118,13 +118,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# Configuration pour l'envoi d'e-mails
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'ismalsacko@gmail.com'
-EMAIL_HOST_PASSWORD = 'hznu jjue olhf xrma'
 
 CORS_ALLOW_ALL_ORIGINS = True
 

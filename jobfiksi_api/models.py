@@ -25,7 +25,40 @@ class CustomUser(AbstractUser):
 User = get_user_model()
 
 
-# Modèle Candidat
+# Modèle pour les formations du candidat
+class FormationsCandidat(models.Model):
+    candidat = models.ForeignKey('Candidat', on_delete=models.CASCADE,
+                                 related_name='formations_candidat')  # Nouveau related_name
+    niveauFormation = models.CharField(max_length=100, null=True, blank=True)  # Bac, Bac+2, etc.
+    diplome = models.CharField(max_length=100, null=True, blank=True)
+    nomFormation = models.CharField(max_length=100, null=True, blank=True)
+    etablissement = models.CharField(max_length=255, null=True, blank=True)
+    dateDebut = models.DateField(null=True, blank=True)
+    dateFin = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.nomFormation} - {self.etablissement}"
+
+    class Meta:
+        db_table = 'formations_candidat'
+
+
+# Modèle pour les expériences professionnelles du candidat
+class ExperienceProfessionnelle(models.Model):
+    candidat = models.ForeignKey('Candidat', on_delete=models.CASCADE,
+                                 related_name='experiences_professionnelles')  # Nouveau related_name
+    posteOccupe = models.CharField(max_length=100, null=True, blank=True)
+    nomStructure = models.CharField(max_length=255, null=True, blank=True)
+    dateDebut = models.DateField(null=True, blank=True)
+    dateFin = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.posteOccupe} - {self.nomStructure}"
+
+    class Meta:
+        db_table = 'experience_professionnelle'
+
+
 class Candidat(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='candidat_profile')
 
@@ -33,56 +66,45 @@ class Candidat(models.Model):
     prenom = models.CharField(max_length=100, null=True, blank=True)
     tel = models.CharField(max_length=20, null=True, blank=True)
     date_naissance = models.DateField(null=True, blank=True)
-    # adresse = models.ForeignKey(Adresse, on_delete=models.SET_NULL, null=True, blank=True)
+    cv = models.FileField(upload_to='cvs/', null=True, blank=True)
+
+    formations = models.ManyToManyField(FormationsCandidat, related_name="candidats_formations", blank=True)
+    experiences = models.ManyToManyField(ExperienceProfessionnelle, related_name="candidats_experiences", blank=True)
+
+    flexibilite_deplacement = models.BooleanField(default=False)
+    secteur = models.CharField(max_length=100, null=True, blank=True)
+    fourchette_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    type_contrat = models.CharField(max_length=100, null=True, blank=True)
+    type_restaurant = models.CharField(max_length=100, null=True, blank=True)
+    horaire_travail = models.CharField(max_length=100, null=True, blank=True)
+    possibilite_formation = models.BooleanField(default=False)
+    salaire_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    salaire_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     num_et_rue = models.CharField(max_length=255, null=True, blank=True)
     ville = models.CharField(max_length=100, null=True, blank=True)
     code_postal = models.CharField(max_length=10, null=True, blank=True)
     pays = models.CharField(max_length=100, null=True, blank=True)
     iban = models.CharField(max_length=27, null=True, blank=True)
     secu_sociale = models.CharField(max_length=15, null=True, blank=True)
-    cv = models.FileField(upload_to='cvs/', null=True, blank=True)
     lettre_motivation = models.FileField(upload_to='lettres_motivation/', null=True, blank=True)
     autres_documents = models.FileField(upload_to='autres_documents/', null=True, blank=True)
     image = models.ImageField(upload_to='images/candidat', null=True, blank=True)
     genre = models.CharField(max_length=10, null=True, blank=True)
-    disponibilite = models.TextField(choices=[
-        ('tout de suite', 'Tout de suite'),
-        ('dans 3 jours', 'Dans 3 jours'),
-        ('dans les prochaines semaines', 'Dans les prochaines semaines'),
-        ('dans les prochains mois', 'Dans les prochains mois')], max_length=100, null=True, blank=True)
+    disponibilite = models.TextField(choices=[('tout de suite', 'Tout de suite'), ('dans 3 jours', 'Dans 3 jours'),
+                                              ('dans les prochaines semaines', 'Dans les prochaines semaines'),
+                                              ('dans les prochains mois', 'Dans les prochains mois')], max_length=100,
+                                     null=True, blank=True)
 
-    plage_horaire = models.CharField(max_length=255, null=True, blank=True)
-    niveau_etude = models.CharField(max_length=100, null=True, blank=True)
-    experience = models.TextField(max_length=255, null=True, blank=True, choices=[
-        ('Plus d\'expereince', 'Plus d\'expereince'),
-        ('Moins d\'expereince', 'Moins d\'expereince'),
-        ('plus de 1 an', 'plus de 1 an'),
-        ('plus de 2 ans', 'plus de 2 ans'),
-        ('plus de 5 ans', 'plus de 5 ans'),
-        ('plus de 10 ans', 'plus de 10 ans')
-    ])
-    specilaite = models.CharField(choices=[
-        ('serveur', 'Serveur'),
-        ('cuisinier', 'Cuisinier'),
-        ('livreur', 'Livreur'),
-        ('netoyage', 'Netoyage'),
-        ('chef', 'Chef')], max_length=100, null=True, blank=True)
-    formation = models.CharField(max_length=255, blank=True, null=True)
-    etablissement = models.CharField(max_length=100, null=True, blank=True)
-    date_debut = models.DateField(blank=True, null=True)
-    date_fin = models.DateField(blank=True, null=True)
+    specilaite = models.CharField(choices=[('serveur', 'Serveur'), ('cuisinier', 'Cuisinier'), ('livreur', 'Livreur'),
+                                           ('netoyage', 'Netoyage'), ('chef', 'Chef')], max_length=100, null=True,
+                                  blank=True)
     langues_parlees = models.CharField(max_length=255, null=True, blank=True)
     type_de_poste_recherche = models.CharField(max_length=100, null=True, blank=True)
     type_de_contrat_recherche = models.CharField(max_length=100, null=True, blank=True)
     preference_lieu = models.CharField(max_length=100, null=True, blank=True)
-    salaire_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    salaire_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     email_pro = models.EmailField(null=True, blank=True)
-    # preférence_salaire en euros
     preference_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    # notification par mail oui ou non
     notification_mail = models.BooleanField(default=False)
-    # Souhaitez-vous rendre votre profil public ?
     profil_public = models.BooleanField(default=False)
 
     @property
@@ -90,12 +112,11 @@ class Candidat(models.Model):
         today = date.today()
         if self.date_naissance:
             return today.year - self.date_naissance.year - (
-                    (today.month, today.day) < (self.date_naissance.month, self.date_naissance.day)
-            )
+                    (today.month, today.day) < (self.date_naissance.month, self.date_naissance.day))
         return None
 
     def __str__(self):
-        return f"{self.nom} {self.prenom} {self.tel} {self.ville}"
+        return f"{self.nom} {self.prenom}"
 
     class Meta:
         db_table = 'candidat'
@@ -124,9 +145,63 @@ class Restaurant(models.Model):
     site_web = models.URLField(null=True, blank=True)
     notification_mail = models.BooleanField(default=False)
 
+    # Niveau d'étude : liste de niveaux d'études possibles
+    NIVEAU_ETUDE_CHOICES = [
+        ('bac', 'Bac'),
+        ('bac+2', 'Bac+2'),
+        ('bac+3', 'Bac+3'),
+        ('bac+5', 'Bac+5'),
+        ('autre', 'Autre'),
+    ]
+    niveau_etude = models.CharField(max_length=100, choices=NIVEAU_ETUDE_CHOICES, null=True, blank=True)
+    age_min = models.IntegerField(choices=[(18, '18'), (21, '21'), (25, '25'), (30, '30'), (35, '35'), (40, '40')],
+                                  null=True, blank=True)
+    attente_candidat = models.CharField(max_length=255, null=True, blank=True)
+    # Possibilité de former : Booléen
+    possibilite_former = models.BooleanField(default=False)
+
+    # Type de contrat : liste de types de contrats possibles
+    TYPE_CONTRAT_CHOICES = [
+        ('CDI', 'CDI'),
+        ('CDD', 'CDD'),
+        ('intérim', 'Intérim'),
+        ('stage', 'Stage'),
+    ]
+    type_de_contrat = models.CharField(max_length=100, choices=TYPE_CONTRAT_CHOICES, null=True, blank=True)
+
+    # Type de travail : liste de types de travail possibles
+    TYPE_TRAVAIL_CHOICES = [
+        ('serveur', 'Serveur'),
+        ('cuisinier', 'Cuisinier'),
+        ('livreur', 'Livreur'),
+        ('nettoyage', 'Nettoyage'),
+        ('chef', 'Chef'),
+        ('caissier', 'Caissier'),
+        ('plongeur', 'Plongeur'),
+        ('patissier', 'Patissier'),
+    ]
+    type_de_travail = models.CharField(max_length=100, choices=TYPE_TRAVAIL_CHOICES, null=True, blank=True)
+
+    # Possibilité de débuter : Booléen
+    possibilite_debuter = models.BooleanField(default=False)
+
+    # Horaire de travail : liste d'options possibles pour les horaires
+    HORAIRES_TRAVAIL_CHOICES = [
+        ('matin', 'Matin'),
+        ('midi', 'Midi'),
+        ('soir', 'Soir'),
+        ('nuit', 'Nuit'),
+        ('flexible', 'Flexible'),
+    ]
+    horaire_travail = models.CharField(max_length=100, choices=HORAIRES_TRAVAIL_CHOICES, null=True, blank=True)
+    # creneau_entretien =plusieurs dates possibles pour un entretien
+    creneau_1 = models.DateTimeField(null=True, blank=True)
+    creneau_2 = models.DateTimeField(null=True, blank=True)
+    creneau_3 = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
-        # return tous les champs du restaurant
-        return f"{self.nom} {self.tel} {self.type} {self.site_web}"
+        # return tous les nom et le user_type
+        return f"{self.nom} - {self.user.user_type}"
 
     class Meta:
         db_table = 'restaurant'
@@ -192,7 +267,10 @@ class Annonce(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='annonces')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="annonces",
+                                   null=True,
+                                   blank=True)
+
     # Champs de géolocalisation
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -207,15 +285,8 @@ class Annonce(models.Model):
 
 
 class Candidature(models.Model):
-    candidat = models.ForeignKey(Candidat,
-        on_delete=models.CASCADE,
-        related_name='candidatures'
-    )
-    annonce = models.ForeignKey(
-        Annonce,
-        on_delete=models.CASCADE,
-        related_name='candidatures'
-    )
+    candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="candidatures")
+    annonce = models.ForeignKey(Annonce, on_delete=models.CASCADE, related_name="candidatures")
     nom = models.CharField(max_length=100, null=True, blank=True)
     prenom = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
@@ -223,23 +294,21 @@ class Candidature(models.Model):
     ville = models.CharField(max_length=100, null=True, blank=True)
     code_postal = models.CharField(max_length=10, null=True, blank=True)
     pays = models.CharField(max_length=100, null=True, blank=True)
-    disponibilite = models.TextField(choices=[
-        ('Lundi', 'Lundi'),
-        ('Mardi', 'Mardi'),
-        ('Mercredi', 'Mercredi'),
-        ('Jeudi', 'Jeudi'),
-        ('Vendredi', 'Vendredi'),
-        ('Samedi', 'Samedi'),
-        ('Dimanche', 'Dimanche'),
-        ('Tous les jours', 'Tous les jours')],max_length=100, null=True, blank=True)
-    crenaux_horaire = models.CharField(max_length=255, null=True, blank=True,choices=[
-        ('8h-12h', 'Matin : 8h-12h'),
-        ('12h-15h', 'Midi : 12h-15h'),
-        ('18h-22h', 'Soir : 18h-22h'),
-        ('22h-6h', 'Nuit : 22h-6h')],)
+    disponibilite = models.TextField(choices=[('Lundi', 'Lundi'), ('Mardi', 'Mardi'), ('Mercredi', 'Mercredi'),
+                                              ('Jeudi', 'Jeudi'), ('Vendredi', 'Vendredi'), ('Samedi', 'Samedi'),
+                                              ('Dimanche', 'Dimanche'), ('Tous les jours', 'Tous les jours')],
+                                     max_length=100, null=True, blank=True)
+    crenaux_horaire = models.CharField(max_length=255, null=True, blank=True, choices=[('8h-12h', 'Matin : 8h-12h'),
+                                                                                       ('12h-15h', 'Midi : 12h-15h'),
+                                                                                       ('18h-22h', 'Soir : 18h-22h'),
+                                                                                       ('22h-6h', 'Nuit : 22h-6h')])
     date_candidature = models.DateField(auto_now_add=True)
-    ad_cv = models.FileField(upload_to='candidatures/', null=True, blank=True)
+    date_entretien = models.DateTimeField(null=True, blank=True)
+    cv = models.FileField(upload_to='candidatures/', null=True, blank=True)
     message = models.TextField(null=True, blank=True)
+    statut = models.BooleanField(choices=[(True, 'Acceptée'), (False, 'Refusée'), (None, 'En attente')], null=True,
+                                 blank=True)
+    note = models.DecimalField(max_digits=2, decimal_places=1, null=True, blank=True)  # Note du candidat
 
     def __str__(self):
         return f"Candidature de {self.candidat} pour {self.annonce}"
@@ -252,4 +321,106 @@ class Candidature(models.Model):
         ordering = ['date_candidature']
 
 
-# class Adresse(models.Model):
+# Modèle pour les favoris d'un candidat
+class CanditatFavoris(models.Model):
+    candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="favoris")
+    annonce = models.ForeignKey(Annonce, on_delete=models.CASCADE, related_name="favoris")
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="favoris")
+    favori = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'candidat_favoris'
+
+
+class Entretien(models.Model):
+    candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="entretiens")
+    annonce = models.ForeignKey(Annonce, on_delete=models.CASCADE, related_name="entretiens")
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="entretiens")
+    date = models.DateTimeField(null=True, blank=True)
+    statut = models.CharField(max_length=100,
+                              choices=[('prévu', 'Prévu'), ('réalisé', 'Réalisé'), ('annulé', 'Annulé')])
+    commentaire = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Entretien de {self.candidat.nom} pour {self.annonce.titre} avec {self.restaurant.nom}"
+
+    class Meta:
+        db_table = 'entretien'
+
+
+class Conversation(models.Model):
+    candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="conversations")
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="conversations")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    statut = models.CharField(max_length=20, choices=[('active', 'Active'), ('closed', 'Closed')], default='active')
+
+    def __str__(self):
+        return f"Conversation between {self.candidat.nom} and {self.restaurant.nom}"
+
+    class Meta:
+        db_table = 'conversation'
+
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+    auteur = models.ForeignKey(CustomUser,
+                               on_delete=models.CASCADE)  # Le message est envoyé par un utilisateur (candidat ou restaurant)
+    contenu = models.TextField()
+    date_envoi = models.DateTimeField(auto_now_add=True)
+    type_message = models.CharField(max_length=10,
+                                    choices=[('text', 'Text'), ('file', 'File')])  # Pour distinguer texte ou fichier
+
+    def __str__(self):
+        return f"Message from {self.auteur.username} on {self.date_envoi}"
+
+    class Meta:
+        db_table = 'message'
+
+
+class FichierJointMessage(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="fichiers_joints")
+    fichier = models.FileField(upload_to="messages/fichiers/")
+    taille = models.IntegerField(null=True, blank=True)  # Taille en Ko
+    type_fichier = models.CharField(max_length=10)  # PDF, Doc, etc.
+
+    def __str__(self):
+        return f"Fichier joint {self.fichier.name}"
+
+    class Meta:
+        db_table = 'fichier_joint_message'
+
+
+class Contract(models.Model):
+    STATUT_CHOICES = [
+        ('signed', 'Signé'),
+        ('not_signed', 'Non signé'),
+    ]
+
+    # Relations vers Restaurant et Candidat
+    restaurant = models.ForeignKey('Restaurant', on_delete=models.CASCADE, related_name='contracts')
+    candidat = models.ForeignKey('Candidat', on_delete=models.CASCADE, related_name='contracts')
+
+    # Informations sur le contrat
+    date_signature = models.DateField(null=True, blank=True)  # Date de signature du contrat
+    date_debut = models.DateField(null=True, blank=True)  # Date de début du contrat
+    date_fin = models.DateField(null=True, blank=True)  # Date de fin du contrat
+    type_contrat = models.CharField(max_length=100, null=True, blank=True,
+                                    choices=[('CDI', 'CDI'), ('CDD', 'CDD')])  # Type de contrat
+    salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Salaire du candidat
+    horaire_travail = models.CharField(max_length=100, null=True, blank=True, choices=[('temps_plein', 'Temps plein'), (
+        'temps_partiel', 'Temps partiel')])  # Temps de travail
+
+    # Statut du contrat (signé ou non signé)
+    statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='not_signed')
+
+    # Autres informations spécifiques à chaque partie
+    restaurant_comments = models.TextField(null=True, blank=True)  # Commentaires du restaurant sur le contrat
+    candidat_comments = models.TextField(null=True, blank=True)  # Commentaires du candidat sur le contrat
+
+    def __str__(self):
+        return f"Contrat entre {self.restaurant.nom} et {self.candidat.nom}"
+
+    class Meta:
+        db_table = 'contract'
+        verbose_name = 'Contrat'
+        verbose_name_plural = 'Contrats'
