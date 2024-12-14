@@ -39,7 +39,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 class CandidatSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    age = serializers.ReadOnlyField()
+    #age = serializers.ReadOnlyField()
 
     class Meta:
         model = Candidat
