@@ -60,6 +60,16 @@ class ExperienceProfessionnelle(models.Model):
 
 
 class Candidat(models.Model):
+
+
+    # Niveau d'étude : liste de niveaux d'études possibles
+    NIVEAU_ETUDE_CHOICES = [
+        ('bac', 'Bac'),
+        ('bac+2', 'Bac+2'),
+        ('bac+3', 'Bac+3'),
+        ('bac+5', 'Bac+5'),
+        ('autre', 'Autre'),
+    ]
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='candidat_profile')
 
     nom = models.CharField(max_length=100, null=True, blank=True)
@@ -70,6 +80,7 @@ class Candidat(models.Model):
 
     formations = models.ManyToManyField(FormationsCandidat, related_name="candidats_formations", blank=True)
     experiences = models.ManyToManyField(ExperienceProfessionnelle, related_name="candidats_experiences", blank=True)
+    niveau_etude = models.CharField(max_length=100, choices=NIVEAU_ETUDE_CHOICES, null=True, blank=True)
 
     flexibilite_deplacement = models.BooleanField(default=False)
     secteur = models.CharField(max_length=100, null=True, blank=True)
