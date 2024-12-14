@@ -46,7 +46,7 @@ class CandidatSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'nom', 'prenom', 'tel', 'date_naissance', 'age', 'genre',
             'cv', 'lettre_motivation', 'autres_documents', 'niveau_etude',
-            'specilaite', 'experience', 'etablissement', 'formation', 'date_debut',
+            'specilaite', 'experiences', 'et', 'formation', 'date_debut',
             'date_fin', 'image', 'ville', 'num_et_rue', 'code_postal', 'pays', 'disponibilite',
             'preference_salaire', 'salaire_min', 'salaire_max', 'plage_horaire', 'iban', 'secu_sociale',
             'notification_mail',
@@ -98,8 +98,7 @@ class CandidatureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Candidature
-        fields = ['id', 'candidat', 'annonce', 'nom', 'prenom', 'email', 'tel', 'ville', 'code_postal', 'pays',
-                  'disponibilite', 'crenaux_horaire', 'date_candidature', 'cv', 'message', 'statut', 'note']
+        fields = '__all__'
         read_only_fields = ['date_candidature', 'candidat']
 
     def update(self, instance, validated_data):
