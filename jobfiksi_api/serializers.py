@@ -44,21 +44,27 @@ class CandidatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Candidat
         fields = [
-            'id', 'nom', 'prenom', 'tel', 'date_naissance', 'age', 'genre',
-            'cv', 'lettre_motivation', 'autres_documents', 'niveau_etude',
-            'specilaite', 'experiences', 'et', 'formation', 'date_debut',
-            'date_fin', 'image', 'ville', 'num_et_rue', 'code_postal', 'pays', 'disponibilite',
-            'preference_salaire', 'salaire_min', 'salaire_max', 'plage_horaire', 'iban', 'secu_sociale',
-            'notification_mail',
+            'id', 'user', 'nom', 'prenom', 'tel', 'date_naissance', 'cv',
+            'formations', 'experiences', 'niveau_etude', 'niveau_etude',
+            'flexibilite_deplacement', 'secteur', 'fourchette_salaire',
+            'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation',
+            'salaire_min', 'salaire_max', 'num_et_rue', 'ville', 'code_postal',
+            'pays', 'iban', 'secu_sociale', 'lettre_motivation', 'autres_documents',
+            'image', 'genre', 'disponibilite', 'specilaite', 'langues_parlees',
+            'type_de_poste_recherche', 'type_de_contrat_recherche', 'preference_lieu',
+            'email_pro', 'preference_salaire', 'notification_mail', 'profil_public'
         ]
 
     def update(self, instance, validated_data):
-        for field in [
-            'nom', 'prenom', 'tel', 'date_naissance', 'niveau_etude', 'specilaite', 'experience',
-            'etablissement', 'formation', 'date_debut', 'date_fin', 'ville', 'num_et_rue', 'code_postal',
-            'pays', 'disponibilite', 'plage_horaire', 'iban', 'secu_sociale', 'preference_salaire', 'salaire_min',
-            'salaire_max', 'notification_mail', 'genre'
-        ]:
+        for field in ['nom', 'prenom', 'tel', 'date_naissance', 'cv',
+                      'formations', 'experiences', 'niveau_etude', 'niveau_etude',
+                      'flexibilite_deplacement', 'secteur', 'fourchette_salaire',
+                      'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation',
+                      'salaire_min', 'salaire_max', 'num_et_rue', 'ville', 'code_postal',
+                      'pays', 'iban', 'secu_sociale', 'lettre_motivation', 'autres_documents',
+                      'image', 'genre', 'disponibilite', 'specilaite', 'langues_parlees',
+                      'type_de_poste_recherche', 'type_de_contrat_recherche', 'preference_lieu',
+                      'email_pro', 'preference_salaire', 'notification_mail', 'profil_public']:
             setattr(instance, field, validated_data.get(field, getattr(instance, field)))
 
         instance.save()

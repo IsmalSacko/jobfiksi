@@ -60,8 +60,6 @@ class ExperienceProfessionnelle(models.Model):
 
 
 class Candidat(models.Model):
-
-
     # Niveau d'étude : liste de niveaux d'études possibles
     NIVEAU_ETUDE_CHOICES = [
         ('bac', 'Bac'),
