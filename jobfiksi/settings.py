@@ -69,17 +69,17 @@ WSGI_APPLICATION = 'jobfiksi.wsgi.application'
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'jobfiksi',
-#         'USER': 'ismael_admin',
-#         'PASSWORD': 'sacko&diaby',
-#         'HOST': 'localhost',
-#         'PORT': '3306',
-#
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'jobfiksi',
+        'USER': 'ismael_admin',
+        'PASSWORD': 'sacko&diaby',
+        'HOST': 'localhost',
+        'PORT': '3306',
+
+    }
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
