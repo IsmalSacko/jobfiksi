@@ -80,7 +80,7 @@ class UserListCreateRetrieveView(generics.ListCreateAPIView):
                 )
 
             # Générer dynamiquement le lien vers la page de connexion
-            #login_url = request.build_absolute_uri(reverse('login'))
+            # login_url = request.build_absolute_uri(reverse('login'))
 
             # # Envoyer un email de confirmation
             # send_mail(
@@ -485,6 +485,15 @@ class RestaurantListView(generics.ListAPIView):
         return self.list(request, *args, **kwargs)
 
 
+class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Vue pour récupérer, mettre à jour ou supprimer un restaurant spécifique.
+    """
+    serializer_class = RestaurantSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Restaurant.objects.all()
+
+
 class StartConversationView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -532,39 +541,40 @@ class SendMessageView(APIView):
         serializer_class = ContractSerializer
         permission_classes = [IsAuthenticated]  # Assurez-vous que l'utilisateur est authentifié
 
+
 class ContractListCreateView(generics.ListCreateAPIView):
-        """
+    """
         Vue pour lister et créer des contrats.
         """
-        serializer_class = ContractSerializer
-        permission_classes = [IsAuthenticated]
+    serializer_class = ContractSerializer
+    permission_classes = [IsAuthenticated]
 
-        def get_queryset(self):
-            user = self.request.user
-            # Si l'utilisateur est un restaurant, afficher ses contrats
-            if hasattr(user, 'restaurant'):
-                return Contract.objects.filter(restaurant=user.restaurant)
-            # Si l'utilisateur est un candidat, afficher ses contrats
-            if hasattr(user, 'candidat'):
-                return Contract.objects.filter(candidat=user.candidat)
-            return Contract.objects.none()
+    def get_queryset(self):
+        user = self.request.user
+        # Si l'utilisateur est un restaurant, afficher ses contrats
+        if hasattr(user, 'restaurant'):
+            return Contract.objects.filter(restaurant=user.restaurant)
+        # Si l'utilisateur est un candidat, afficher ses contrats
+        if hasattr(user, 'candidat'):
+            return Contract.objects.filter(candidat=user.candidat)
+        return Contract.objects.none()
 
-        def perform_create(self, serializer):
-            user = self.request.user
-            # Seul un restaurant peut créer un contrat
-            if not hasattr(user, 'restaurant'):
-                raise serializers.ValidationError("Seuls les restaurants peuvent générer des contrats.")
+    def perform_create(self, serializer):
+        user = self.request.user
+        # Seul un restaurant peut créer un contrat
+        if not hasattr(user, 'restaurant'):
+            raise serializers.ValidationError("Seuls les restaurants peuvent générer des contrats.")
 
-            restaurant = user.restaurant
-            candidat_id = self.request.data.get('candidat')
-            if not candidat_id:
-                raise serializers.ValidationError({"candidat": "Le candidat est obligatoire pour générer un contrat."})
+        restaurant = user.restaurant
+        candidat_id = self.request.data.get('candidat')
+        if not candidat_id:
+            raise serializers.ValidationError({"candidat": "Le candidat est obligatoire pour générer un contrat."})
 
-            # Valider si le candidat existe
-            try:
-                candidat = Candidat.objects.get(id=candidat_id)
-            except Candidat.DoesNotExist:
-                raise serializers.ValidationError({"candidat": "Le candidat spécifié n'existe pas."})
+        # Valider si le candidat existe
+        try:
+            candidat = Candidat.objects.get(id=candidat_id)
+        except Candidat.DoesNotExist:
+            raise serializers.ValidationError({"candidat": "Le candidat spécifié n'existe pas."})
 
-            # Créer le contrat
-            serializer.save(restaurant=restaurant, candidat=candidat)
+        # Créer le contrat
+        serializer.save(restaurant=restaurant, candidat=candidat)

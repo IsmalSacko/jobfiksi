@@ -55,18 +55,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jobfiksi.wsgi.application'
 
-# # DATABASES = {
-# #     'default': {
-# #         'ENGINE': 'django.db.backends.mysql',
-# #         'NAME': 'jobfiksi',
-# #         'USER': 'root',
-# #         'PASSWORD': '',
-# #         'HOST': 'localhost',
-# #         'PORT': '3306',
-# #         'OPTIONS': {
-# #             'charset': 'utf8mb4',
-# #         },
-# #     }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'jobfiksi',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         },
+#     }
 # }
 
 DATABASES = {

@@ -10,7 +10,7 @@ from .views import (
     CandidatProfileView,
     CandidatDetailView, UserListCreateRetrieveView, CandidatureDetailView, RestaurantListView, StartConversationView,
     SendMessageView,
-    ContractListCreateView
+    ContractListCreateView, RestaurantDetailView
 
 )
 
@@ -24,8 +24,10 @@ urlpatterns = [
     path('candidats/<int:pk>/', CandidatDetailView.as_view(), name='candidat-detail'),
     # Route pour lister les restaurants
     path('restaurants/', RestaurantListView.as_view(), name='restaurant-list'),
+    path('restaurants/<int:pk>/', RestaurantDetailView.as_view(), name='restaurant-detail'),
     # Routes pour les restaurants
     path('restaurants/profile/', RestaurantProfileView.as_view(), name='restaurant-profile'),
+
     path('candidats/profile/', CandidatProfileView.as_view(), name='candidat-profile'),
     # Routes pour gérer les annonces
     path('annonces/', AnnonceListCreateView.as_view(), name='annonce_create'),
