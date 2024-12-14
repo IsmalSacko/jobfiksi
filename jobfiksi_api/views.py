@@ -287,26 +287,33 @@ class AnnonceListCreateView(generics.ListCreateAPIView):
 
 
 class AnnonceDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Vue pour récupérer, modifier ou supprimer une annonce
+    uniquement si l'utilisateur est le créateur et de type restaurant.
+    """
     queryset = Annonce.objects.all()
     serializer_class = AnnonceSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+    permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, *args, **kwargs):
         annonce = self.get_object()
-        if request.user.user_type == 'recruteur' and request.user == annonce.created_by:
+
+        # Vérifier si l'utilisateur est le créateur et de type 'restaurant'
+        if request.user == annonce.created_by and request.user.user_type == 'restaurant':
             return super().put(request, *args, **kwargs)
-        else:
-            raise PermissionDenied("Vous n'êtes pas autorisé à modifier cette annonce.")
+
+        # Sinon, lever une exception
+        raise PermissionDenied("Vous n'êtes pas autorisé à modifier cette annonce.")
 
     def delete(self, request, *args, **kwargs):
         annonce = self.get_object()
-        if request.user.user_type == 'recruteur' and request.user == annonce.created_by:
+
+        # Vérifier si l'utilisateur est le créateur et de type 'restaurant'
+        if request.user == annonce.created_by and request.user.user_type == 'restaurant':
             return super().delete(request, *args, **kwargs)
-        else:
-            raise PermissionDenied("Vous n'êtes pas autorisé à supprimer cette annonce.")
+
+        # Sinon, lever une exception
+        raise PermissionDenied("Vous n'êtes pas autorisé à supprimer cette annonce.")
 
 
 class CandidatureListCreateView(generics.ListCreateAPIView):
