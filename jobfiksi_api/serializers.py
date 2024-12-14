@@ -45,7 +45,7 @@ class CandidatSerializer(serializers.ModelSerializer):
         model = Candidat
         fields = [
             'id', 'user', 'nom', 'prenom', 'tel', 'date_naissance', 'cv',
-            'formations', 'experiences', 'niveau_etude', 'niveau_etude',
+            'formations', 'experiences', 'niveau_etude',
             'flexibilite_deplacement', 'secteur', 'fourchette_salaire',
             'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation',
             'salaire_min', 'salaire_max', 'num_et_rue', 'ville', 'code_postal',
@@ -57,7 +57,7 @@ class CandidatSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         for field in ['nom', 'prenom', 'tel', 'date_naissance', 'cv',
-                      'formations', 'experiences', 'niveau_etude', 'niveau_etude',
+                      'formations', 'experiences', 'niveau_etude',
                       'flexibilite_deplacement', 'secteur', 'fourchette_salaire',
                       'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation',
                       'salaire_min', 'salaire_max', 'num_et_rue', 'ville', 'code_postal',
