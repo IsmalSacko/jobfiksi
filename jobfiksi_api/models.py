@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.utils.timezone import now
 
 
 # Modèle CustomUser
@@ -26,41 +27,12 @@ User = get_user_model()
 
 
 # Modèle pour les formations du candidat
-class FormationsCandidat(models.Model):
-    candidat = models.ForeignKey('Candidat', on_delete=models.CASCADE,
-                                 related_name='formations_candidat')  # Nouveau related_name
-    niveauFormation = models.CharField(max_length=100, null=True, blank=True)  # Bac, Bac+2, etc.
-    diplome = models.CharField(max_length=100, null=True, blank=True)
-    nomFormation = models.CharField(max_length=100, null=True, blank=True)
-    etablissement = models.CharField(max_length=255, null=True, blank=True)
-    dateDebut = models.DateField(null=True, blank=True)
-    dateFin = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.nomFormation} - {self.etablissement}"
-
-    class Meta:
-        db_table = 'formations_candidat'
 
 
 # Modèle pour les expériences professionnelles du candidat
-class ExperienceProfessionnelle(models.Model):
-    candidat = models.ForeignKey('Candidat', on_delete=models.CASCADE,
-                                 related_name='experiences_professionnelles')  # Nouveau related_name
-    posteOccupe = models.CharField(max_length=100, null=True, blank=True)
-    nomStructure = models.CharField(max_length=255, null=True, blank=True)
-    dateDebut = models.DateField(null=True, blank=True)
-    dateFin = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.posteOccupe} - {self.nomStructure}"
-
-    class Meta:
-        db_table = 'experience_professionnelle'
 
 
 class Candidat(models.Model):
-    # Niveau d'étude : liste de niveaux d'études possibles
     NIVEAU_ETUDE_CHOICES = [
         ('bac', 'Bac'),
         ('bac+2', 'Bac+2'),
@@ -68,18 +40,37 @@ class Candidat(models.Model):
         ('bac+5', 'Bac+5'),
         ('autre', 'Autre'),
     ]
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='candidat_profile')
 
+    DISPONIBILITE_CHOICES = [
+        ('tout de suite', 'Tout de suite'),
+        ('dans 3 jours', 'Dans 3 jours'),
+        ('dans les prochaines semaines', 'Dans les prochaines semaines'),
+        ('dans les prochains mois', 'Dans les prochains mois'),
+    ]
+
+    SPECIALITE_CHOICES = [
+        ('serveur', 'Serveur'),
+        ('cuisinier', 'Cuisinier'),
+        ('livreur', 'Livreur'),
+        ('nettoyage', 'Nettoyage'),
+        ('chef', 'Chef'),
+    ]
+
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='candidat_profile')
     nom = models.CharField(max_length=100, null=True, blank=True)
     prenom = models.CharField(max_length=100, null=True, blank=True)
     tel = models.CharField(max_length=20, null=True, blank=True)
     date_naissance = models.DateField(null=True, blank=True)
     cv = models.FileField(upload_to='cvs/', null=True, blank=True)
 
-    formations = models.ManyToManyField(FormationsCandidat, related_name="candidats_formations", blank=True)
-    experiences = models.ManyToManyField(ExperienceProfessionnelle, related_name="candidats_experiences", blank=True)
-    niveau_etude = models.CharField(max_length=100, choices=NIVEAU_ETUDE_CHOICES, null=True, blank=True)
+    # Nouveau champ
+    nationalite = models.CharField(max_length=100, null=True, blank=True)
 
+    # Formations et expériences
+    formations = models.TextField(null=True, blank=True)
+    experiences = models.TextField(null=True, blank=True)
+
+    niveau_etude = models.CharField(max_length=100, choices=NIVEAU_ETUDE_CHOICES, null=True, blank=True)
     flexibilite_deplacement = models.BooleanField(default=False)
     secteur = models.CharField(max_length=100, null=True, blank=True)
     fourchette_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -99,15 +90,9 @@ class Candidat(models.Model):
     autres_documents = models.FileField(upload_to='autres_documents/', null=True, blank=True)
     image = models.ImageField(upload_to='images/candidat', null=True, blank=True)
     genre = models.CharField(max_length=10, null=True, blank=True)
-    disponibilite = models.TextField(choices=[('tout de suite', 'Tout de suite'), ('dans 3 jours', 'Dans 3 jours'),
-                                              ('dans les prochaines semaines', 'Dans les prochaines semaines'),
-                                              ('dans les prochains mois', 'Dans les prochains mois')], max_length=100,
-                                     null=True, blank=True)
-
-    specilaite = models.CharField(choices=[('serveur', 'Serveur'), ('cuisinier', 'Cuisinier'), ('livreur', 'Livreur'),
-                                           ('netoyage', 'Netoyage'), ('chef', 'Chef')], max_length=100, null=True,
-                                  blank=True)
-    langues_parlees = models.CharField(max_length=255, null=True, blank=True)
+    disponibilite = models.CharField(max_length=100, choices=DISPONIBILITE_CHOICES, null=True, blank=True)
+    specilaite = models.CharField(max_length=100, choices=SPECIALITE_CHOICES, null=True, blank=True)
+    langues_parlees = models.TextField(null=True, blank=True)
     type_de_poste_recherche = models.CharField(max_length=100, null=True, blank=True)
     type_de_contrat_recherche = models.CharField(max_length=100, null=True, blank=True)
     preference_lieu = models.CharField(max_length=100, null=True, blank=True)
@@ -115,14 +100,6 @@ class Candidat(models.Model):
     preference_salaire = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     notification_mail = models.BooleanField(default=False)
     profil_public = models.BooleanField(default=False)
-
-    @property
-    def age(self):
-        today = date.today()
-        if self.date_naissance:
-            return today.year - self.date_naissance.year - (
-                    (today.month, today.day) < (self.date_naissance.month, self.date_naissance.day))
-        return None
 
     def __str__(self):
         return f"{self.nom} {self.prenom}"

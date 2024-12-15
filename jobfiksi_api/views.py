@@ -445,17 +445,13 @@ class LogoutView(APIView):
 
 
 class CandidatProfileView(generics.RetrieveUpdateAPIView):
+    queryset = Candidat.objects.all()
     serializer_class = CandidatSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        user = self.request.user
-        candidt = Candidat.objects.get(user_id=user.id)
-        return candidt
-
-    def perform_update(self, serializer):
-        candidat = self.get_object()
-        serializer.save(candidat=candidat)
+        # Récupérer le profil lié à l'utilisateur connecté
+        return Candidat.objects.get(user=self.request.user)
 
 
 class RestaurantProfileView(generics.RetrieveUpdateAPIView):

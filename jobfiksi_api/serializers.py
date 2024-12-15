@@ -39,33 +39,32 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 class CandidatSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    #age = serializers.ReadOnlyField()
 
     class Meta:
         model = Candidat
         fields = [
-            'id', 'user', 'nom', 'prenom', 'tel', 'date_naissance', 'cv',
-            'formations', 'experiences', 'niveau_etude',
-            'flexibilite_deplacement', 'secteur', 'fourchette_salaire',
-            'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation',
-            'salaire_min', 'salaire_max', 'num_et_rue', 'ville', 'code_postal',
-            'pays', 'iban', 'secu_sociale', 'lettre_motivation', 'autres_documents',
-            'image', 'genre', 'disponibilite', 'specilaite', 'langues_parlees',
-            'type_de_poste_recherche', 'type_de_contrat_recherche', 'preference_lieu',
-            'email_pro', 'preference_salaire', 'notification_mail', 'profil_public'
+            'id', 'user', 'nom', 'prenom', 'tel', 'date_naissance', 'cv', 'nationalite',
+            'formations', 'experiences', 'niveau_etude', 'flexibilite_deplacement',
+            'secteur', 'fourchette_salaire', 'type_contrat', 'type_restaurant',
+            'horaire_travail', 'possibilite_formation', 'salaire_min', 'salaire_max',
+            'num_et_rue', 'ville', 'code_postal', 'pays', 'iban', 'secu_sociale',
+            'lettre_motivation', 'autres_documents', 'image', 'genre', 'disponibilite',
+            'specilaite', 'langues_parlees', 'type_de_poste_recherche',
+            'type_de_contrat_recherche', 'preference_lieu', 'email_pro', 'preference_salaire',
+            'notification_mail', 'profil_public'
         ]
 
     def update(self, instance, validated_data):
-        for field in ['nom', 'prenom', 'tel', 'date_naissance', 'cv',
-                      'formations', 'experiences', 'niveau_etude',
-                      'flexibilite_deplacement', 'secteur', 'fourchette_salaire',
-                      'type_contrat', 'type_restaurant', 'horaire_travail', 'possibilite_formation',
-                      'salaire_min', 'salaire_max', 'num_et_rue', 'ville', 'code_postal',
-                      'pays', 'iban', 'secu_sociale', 'lettre_motivation', 'autres_documents',
-                      'image', 'genre', 'disponibilite', 'specilaite', 'langues_parlees',
-                      'type_de_poste_recherche', 'type_de_contrat_recherche', 'preference_lieu',
-                      'email_pro', 'preference_salaire', 'notification_mail', 'profil_public']:
-            setattr(instance, field, validated_data.get(field, getattr(instance, field)))
+        # Gestion des fichiers : Conserver l'ancien fichier si aucun nouveau n'est soumis
+        for file_field in ['lettre_motivation', 'autres_documents', 'image', 'cv']:
+            if file_field in validated_data:
+                # Si le fichier est `None`, conserver l'ancienne valeur
+                if validated_data[file_field] is None:
+                    validated_data[file_field] = getattr(instance, file_field)
+
+        # Mise à jour des autres champs
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
         instance.save()
         return instance
@@ -73,13 +72,39 @@ class CandidatSerializer(serializers.ModelSerializer):
 
 class RestaurantSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
+    user = serializers.ReadOnlyField(source='user.username')
+    # Personnalisation des champs datetime
+    creneau_1 = serializers.DateTimeField(format="%d/%m/%Y : %H:%M", required=False, allow_null=True)
+    creneau_2 = serializers.DateTimeField(format="%d/%m/%Y : %H:%M", required=False, allow_null=True)
+    creneau_3 = serializers.DateTimeField(format="%d/%m/%Y : %H:%M", required=False, allow_null=True)
 
     class Meta:
         model = Restaurant
         fields = [
-            'id', 'nom', 'email_pro', 'tel', 'ville', 'image', 'num_et_rue', 'ville', 'code_postal',
-            'pays', 'site_web', 'notification_mail', 'type_de_restaurant',
+            'id', 'user', 'nom', 'tel', 'email_pro', 'type_de_restaurant',
+            'image', 'num_et_rue', 'ville', 'code_postal', 'pays', 'site_web',
+            'notification_mail', 'niveau_etude', 'age_min', 'attente_candidat',
+            'possibilite_former', 'type_de_contrat', 'type_de_travail', 'possibilite_debuter',
+            'horaire_travail', 'creneau_1', 'creneau_2', 'creneau_3'
         ]
+
+    def update(self, instance, validated_data):
+        # Gestion du fichier image : conserver l'ancienne valeur si aucun nouveau fichier n'est soumis
+        if 'image' in validated_data:
+            if validated_data['image'] is None:
+                validated_data['image'] = instance.image  # Conserver l'ancienne image
+        for creneau in ['creneau_1', 'creneau_2', 'creneau_3']:
+            if creneau in validated_data:
+                if validated_data[creneau] is None:
+                    validated_data[creneau] = getattr(instance, creneau)
+
+        # Mise à jour des autres champs
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
 
 
 class AnnonceSerializer(serializers.ModelSerializer):
