@@ -6,6 +6,7 @@ env/
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # Ignore les fichiers de configuration spécifiques à l'IDE
 .idea/
@@ -22,11 +23,12 @@ poetry.lock
 *.sqlite3
 
 # Ignore les fichiers générés par Django
-*.pyc
+
 *.pyo
 *.pyd
 *.db
-*.sqlite3
+
+media/
 
 # Ignore les fichiers de migration Django
 #*/migrations/*
