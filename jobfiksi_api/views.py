@@ -542,8 +542,11 @@ class ContractListCreateView(generics.ListCreateAPIView):
         serializer.save(restaurant=restaurant, candidat=candidat)
 
 
-class StartConversationView(ListCreateAPIView):
-    queryset = Conversation.objects.all()
+class StartConversationView(generics.ListCreateAPIView):
+    """
+    Vue pour lister les conversations existantes (GET)
+    et en créer une nouvelle (POST) avec redirection si la conversation existe.
+    """
     serializer_class = ConversationSerializer
     permission_classes = [IsAuthenticated]
 
@@ -552,19 +555,33 @@ class StartConversationView(ListCreateAPIView):
         Retourne les conversations associées à l'utilisateur connecté.
         """
         user = self.request.user
-        if user.user_type == 'restaurant':
-            return Conversation.objects.filter(restaurant=user)
-        elif user.user_type == 'candidat':
+        if user.user_type == 'candidat':
             return Conversation.objects.filter(candidat=user)
+        elif user.user_type == 'restaurant':
+            return Conversation.objects.filter(restaurant=user)
         return Conversation.objects.none()
 
-    def get_serializer_context(self):
+    def create(self, request, *args, **kwargs):
         """
-        Passe l'utilisateur connecté au serializer pour gérer la création.
+        Vérifie si une conversation existe déjà ou en crée une nouvelle.
+        Redirige automatiquement si la conversation existe.
         """
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        candidat = serializer.validated_data.get('candidat')
+        restaurant = serializer.validated_data.get('restaurant')
+
+        # Vérifie si une conversation existe déjà
+        conversation = Conversation.objects.filter(candidat=candidat, restaurant=restaurant).first()
+        if conversation:
+            # Redirige automatiquement vers l'URL des messages de la conversation existante
+            return redirect(f"/api/conversations/{conversation.id}/messages/")
+
+        # Sinon, crée une nouvelle conversation
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class ConversationMessageView(ListCreateAPIView):
@@ -572,16 +589,10 @@ class ConversationMessageView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """
-        Retourne les messages de la conversation donnée.
-        """
         conversation_id = self.kwargs.get('conversation_id')
         return Message.objects.filter(conversation_id=conversation_id).order_by('date_envoi')
 
     def perform_create(self, serializer):
-        """
-        Associe l'auteur et la conversation lors de la création d'un message.
-        """
         conversation_id = self.kwargs.get('conversation_id')
         serializer.save(
             conversation_id=conversation_id,

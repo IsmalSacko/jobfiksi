@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Candidat, Restaurant, Annonce, Candidature, Message, Conversation, Contract, CustomUser, \
-    FichierJointMessage
+from .models import Candidat, Restaurant, Annonce, Candidature, Message, Conversation, Contract
 
 
 class LoginSerializer(serializers.Serializer):
@@ -160,67 +159,42 @@ class ContractSerializer(serializers.ModelSerializer):
         read_only_fields = ['statut', 'restaurant_name', 'candidat_name']
 
 
-class FichierJointSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FichierJointMessage
-        fields = ['id', 'fichier', 'taille', 'type_fichier']
-
 
 class ConversationSerializer(serializers.ModelSerializer):
-    premier_message = serializers.CharField(max_length=1000, write_only=True, required=False)
-    fichiers_joints = serializers.FileField(write_only=True, required=False)  # Simple FileField
-    # candidat = utilisateur connecté
-
-
     class Meta:
         model = Conversation
-        fields = ['id', 'candidat', 'restaurant', 'date_creation', 'statut', 'premier_message', 'fichiers_joints']
+        fields = ['id', 'candidat', 'restaurant', 'message', 'fichier', 'date_creation', 'statut']
         read_only_fields = ['id', 'date_creation', 'statut']
 
     def create(self, validated_data):
-        premier_message = validated_data.pop('premier_message', None)
-        fichier_joint = validated_data.pop('fichiers_joints', None)  # Récupère un seul fichier
-        conversation = Conversation.objects.create(**validated_data)
+        """
+        Vérifie si une conversation existe déjà entre le candidat et le restaurant.
+        Si oui, retourne cette conversation.
+        """
+        candidat = validated_data.get('candidat')
+        restaurant = validated_data.get('restaurant')
 
-        # Ajouter le premier message
-        if premier_message:
-            message = Message.objects.create(
-                conversation=conversation,
-                auteur=self.context['request'].user,
-                contenu=premier_message,
-                type_message='text'
-            )
+        # Vérifiez si une conversation existe déjà
+        conversation = Conversation.objects.filter(candidat=candidat, restaurant=restaurant).first()
+        if conversation:
+            # Retournez la conversation existante
+            return conversation
 
-            # Ajouter le fichier joint s'il existe
-            if fichier_joint:
-                FichierJointMessage.objects.create(
-                    message=message,
-                    fichier=fichier_joint,
-                    taille=fichier_joint.size,
-                    type_fichier=fichier_joint.content_type
-                )
-
-        return conversation
+        # Sinon, créez une nouvelle conversation
+        return Conversation.objects.create(**validated_data)
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    fichiers_joints = serializers.FileField(write_only=True, required=False)  # Un seul fichier à la fois
-
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'contenu', 'type_message', 'date_envoi', 'fichiers_joints']
-        read_only_fields = ['id', 'date_envoi']
+        fields = ['id', 'conversation', 'auteur', 'contenu', 'fichier', 'date_envoi']
+        read_only_fields = ['id', 'auteur', 'date_envoi']
 
     def create(self, validated_data):
-        fichier_joint = validated_data.pop('fichiers_joints', None)
-        message = Message.objects.create(**validated_data)
-
-        if fichier_joint:
-            # Crée un fichier joint pour le message
-            FichierJointMessage.objects.create(
-                message=message,
-                fichier=fichier_joint,
-                taille=fichier_joint.size,
-                type_fichier=fichier_joint.content_type
-            )
-        return message
+        user = self.context['request'].user
+        return Message.objects.create(
+            conversation=validated_data.get('conversation'),
+            auteur=user,
+            contenu=validated_data.get('contenu', ''),
+            fichier=validated_data.get('fichier', None)
+        )

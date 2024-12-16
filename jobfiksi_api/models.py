@@ -341,6 +341,8 @@ class Conversation(models.Model):
         related_name="conversations_restaurant",
         limit_choices_to={'user_type': 'restaurant'}  # Filtrer uniquement les restaurants
     )
+    message = models.TextField(null=True, blank=True)
+    fichier = models.FileField(upload_to="conversations/fichiers/", null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     statut = models.CharField(
         max_length=20,
@@ -349,11 +351,11 @@ class Conversation(models.Model):
     )
 
     def __str__(self):
-        return f"Conversation entre {self.candidat.username} et {self.restaurant.username}"
+        return f"Conversation entre {self.candidat.username}  et {self.restaurant.username} (Conversation {self.id})"
 
     class Meta:
         db_table = 'conversation'
-        unique_together = ('candidat', 'restaurant')  # Une seule conversation possible entre deux utilisateurs
+        #unique_together = ('candidat', 'restaurant')  # Une seule conversation possible entre deux utilisateurs
 
 
 class Message(models.Model):
@@ -368,11 +370,7 @@ class Message(models.Model):
         related_name="messages_envoyes"
     )  # Auteur : candidat ou restaurant
     contenu = models.TextField(blank=True, null=True)
-    type_message = models.CharField(
-        max_length=10,
-        choices=[('text', 'Text'), ('file', 'File')],
-        default='text'
-    )
+    fichier = models.FileField(upload_to="messages/fichiers/", null=True, blank=True)
     date_envoi = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -381,23 +379,6 @@ class Message(models.Model):
     class Meta:
         db_table = 'message'
         ordering = ['date_envoi']
-
-
-class FichierJointMessage(models.Model):
-    message = models.ForeignKey(
-        Message,
-        on_delete=models.CASCADE,
-        related_name="fichiers_joints"
-    )
-    fichier = models.FileField(upload_to="messages/fichiers/")
-    taille = models.IntegerField(null=True, blank=True)  # Taille en Ko
-    type_fichier = models.CharField(max_length=20)  # Exemple : PDF, DOCX, etc.
-
-    def __str__(self):
-        return f"Fichier joint {self.fichier.name} pour le message {self.message.id}"
-
-    class Meta:
-        db_table = 'fichier_joint_message'
 
 
 class Contract(models.Model):
