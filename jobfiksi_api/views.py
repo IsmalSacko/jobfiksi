@@ -13,11 +13,12 @@ from rest_framework import serializers
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.generics import CreateAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Restaurant, Candidature, Annonce, Candidat, Conversation, Message, Contract
+from .models import Restaurant, Candidature, Annonce, Candidat, Conversation, Message, Contract, CustomUser
 from .serializers import (
     UserCreateSerializer,
     RestaurantSerializer,
@@ -497,52 +498,10 @@ class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Restaurant.objects.all()
 
 
-class StartConversationView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        candidat = request.data.get('candidat')  # ID du candidat
-        restaurant = request.user.restaurant_profile  # Récupérer le restaurant connecté
-
-        # Créer une conversation entre le candidat et le restaurant
-        conversation = Conversation.objects.create(
-            candidat=candidat,
-            restaurant=restaurant
-        )
-
-        serializer = ConversationSerializer(conversation)
-        return Response(serializer.data)
-
-
-class SendMessageView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        conversation_id = request.data.get('conversation_id')
-        contenu = request.data.get('contenu')
-        type_message = request.data.get('type_message')  # 'text' ou 'file'
-
-        # Vérifier si la conversation existe
-        try:
-            conversation = Conversation.objects.get(id=conversation_id)
-        except Conversation.DoesNotExist:
-            return Response({"detail": "Conversation not found"}, status=404)
-
-        # Créer un message
-        message = Message.objects.create(
-            conversation=conversation,
-            auteur=request.user,
-            contenu=contenu,
-            type_message=type_message
-        )
-
-        serializer = MessageSerializer(message)
-        return Response(serializer.data)
-
-    class ContractCreateView(generics.CreateAPIView):
-        queryset = Contract.objects.all()
-        serializer_class = ContractSerializer
-        permission_classes = [IsAuthenticated]  # Assurez-vous que l'utilisateur est authentifié
+class ContractCreateView(generics.CreateAPIView):
+    queryset = Contract.objects.all()
+    serializer_class = ContractSerializer
+    permission_classes = [IsAuthenticated]  # Assurez-vous que l'utilisateur est authentifié
 
 
 class ContractListCreateView(generics.ListCreateAPIView):
@@ -581,3 +540,50 @@ class ContractListCreateView(generics.ListCreateAPIView):
 
         # Créer le contrat
         serializer.save(restaurant=restaurant, candidat=candidat)
+
+
+class StartConversationView(ListCreateAPIView):
+    queryset = Conversation.objects.all()
+    serializer_class = ConversationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Retourne les conversations associées à l'utilisateur connecté.
+        """
+        user = self.request.user
+        if user.user_type == 'restaurant':
+            return Conversation.objects.filter(restaurant=user)
+        elif user.user_type == 'candidat':
+            return Conversation.objects.filter(candidat=user)
+        return Conversation.objects.none()
+
+    def get_serializer_context(self):
+        """
+        Passe l'utilisateur connecté au serializer pour gérer la création.
+        """
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class ConversationMessageView(ListCreateAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Retourne les messages de la conversation donnée.
+        """
+        conversation_id = self.kwargs.get('conversation_id')
+        return Message.objects.filter(conversation_id=conversation_id).order_by('date_envoi')
+
+    def perform_create(self, serializer):
+        """
+        Associe l'auteur et la conversation lors de la création d'un message.
+        """
+        conversation_id = self.kwargs.get('conversation_id')
+        serializer.save(
+            conversation_id=conversation_id,
+            auteur=self.request.user
+        )

@@ -26,12 +26,6 @@ class CustomUser(AbstractUser):
 User = get_user_model()
 
 
-# Modèle pour les formations du candidat
-
-
-# Modèle pour les expériences professionnelles du candidat
-
-
 class Candidat(models.Model):
     NIVEAU_ETUDE_CHOICES = [
         ('bac', 'Bac'),
@@ -335,42 +329,72 @@ class Entretien(models.Model):
 
 
 class Conversation(models.Model):
-    candidat = models.ForeignKey(Candidat, on_delete=models.CASCADE, related_name="conversations")
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="conversations")
+    candidat = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="conversations_candidat",
+        limit_choices_to={'user_type': 'candidat'}  # Filtrer uniquement les candidats
+    )
+    restaurant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="conversations_restaurant",
+        limit_choices_to={'user_type': 'restaurant'}  # Filtrer uniquement les restaurants
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
-    statut = models.CharField(max_length=20, choices=[('active', 'Active'), ('closed', 'Closed')], default='active')
+    statut = models.CharField(
+        max_length=20,
+        choices=[('active', 'Active'), ('closed', 'Closed')],
+        default='active'
+    )
 
     def __str__(self):
-        return f"Conversation between {self.candidat.nom} and {self.restaurant.nom}"
+        return f"Conversation entre {self.candidat.username} et {self.restaurant.username}"
 
     class Meta:
         db_table = 'conversation'
+        unique_together = ('candidat', 'restaurant')  # Une seule conversation possible entre deux utilisateurs
 
 
 class Message(models.Model):
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
-    auteur = models.ForeignKey(CustomUser,
-                               on_delete=models.CASCADE)  # Le message est envoyé par un utilisateur (candidat ou restaurant)
-    contenu = models.TextField()
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
+    auteur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="messages_envoyes"
+    )  # Auteur : candidat ou restaurant
+    contenu = models.TextField(blank=True, null=True)
+    type_message = models.CharField(
+        max_length=10,
+        choices=[('text', 'Text'), ('file', 'File')],
+        default='text'
+    )
     date_envoi = models.DateTimeField(auto_now_add=True)
-    type_message = models.CharField(max_length=10,
-                                    choices=[('text', 'Text'), ('file', 'File')])  # Pour distinguer texte ou fichier
 
     def __str__(self):
-        return f"Message from {self.auteur.username} on {self.date_envoi}"
+        return f"Message de {self.auteur.username} dans la conversation {self.conversation.id}"
 
     class Meta:
         db_table = 'message'
+        ordering = ['date_envoi']
 
 
 class FichierJointMessage(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="fichiers_joints")
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="fichiers_joints"
+    )
     fichier = models.FileField(upload_to="messages/fichiers/")
     taille = models.IntegerField(null=True, blank=True)  # Taille en Ko
-    type_fichier = models.CharField(max_length=10)  # PDF, Doc, etc.
+    type_fichier = models.CharField(max_length=20)  # Exemple : PDF, DOCX, etc.
 
     def __str__(self):
-        return f"Fichier joint {self.fichier.name}"
+        return f"Fichier joint {self.fichier.name} pour le message {self.message.id}"
 
     class Meta:
         db_table = 'fichier_joint_message'

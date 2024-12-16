@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Candidat, Restaurant, Annonce, Candidature, Message, Conversation, Contract
+from .models import Candidat, Restaurant, Annonce, Candidature, Message, Conversation, Contract, CustomUser, \
+    FichierJointMessage
 
 
 class LoginSerializer(serializers.Serializer):
@@ -106,7 +107,6 @@ class RestaurantSerializer(serializers.ModelSerializer):
         return instance
 
 
-
 class AnnonceSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')
 
@@ -145,18 +145,6 @@ class CandidatureSerializer(serializers.ModelSerializer):
         return instance
 
 
-class ConversationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Conversation
-        fields = ['id', 'candidat', 'restaurant', 'date_creation', 'statut']
-
-
-class MessageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Message
-        fields = ['id', 'conversation', 'auteur', 'contenu', 'date_envoi', 'type_message']
-
-
 class ContractSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source='restaurant.nom', read_only=True)
     candidat_name = serializers.CharField(source='candidat.nom', read_only=True)
@@ -170,3 +158,69 @@ class ContractSerializer(serializers.ModelSerializer):
             'candidat_comments'
         ]
         read_only_fields = ['statut', 'restaurant_name', 'candidat_name']
+
+
+class FichierJointSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FichierJointMessage
+        fields = ['id', 'fichier', 'taille', 'type_fichier']
+
+
+class ConversationSerializer(serializers.ModelSerializer):
+    premier_message = serializers.CharField(max_length=1000, write_only=True, required=False)
+    fichiers_joints = serializers.FileField(write_only=True, required=False)  # Simple FileField
+    # candidat = utilisateur connecté
+
+
+    class Meta:
+        model = Conversation
+        fields = ['id', 'candidat', 'restaurant', 'date_creation', 'statut', 'premier_message', 'fichiers_joints']
+        read_only_fields = ['id', 'date_creation', 'statut']
+
+    def create(self, validated_data):
+        premier_message = validated_data.pop('premier_message', None)
+        fichier_joint = validated_data.pop('fichiers_joints', None)  # Récupère un seul fichier
+        conversation = Conversation.objects.create(**validated_data)
+
+        # Ajouter le premier message
+        if premier_message:
+            message = Message.objects.create(
+                conversation=conversation,
+                auteur=self.context['request'].user,
+                contenu=premier_message,
+                type_message='text'
+            )
+
+            # Ajouter le fichier joint s'il existe
+            if fichier_joint:
+                FichierJointMessage.objects.create(
+                    message=message,
+                    fichier=fichier_joint,
+                    taille=fichier_joint.size,
+                    type_fichier=fichier_joint.content_type
+                )
+
+        return conversation
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    fichiers_joints = serializers.FileField(write_only=True, required=False)  # Un seul fichier à la fois
+
+    class Meta:
+        model = Message
+        fields = ['id', 'conversation', 'contenu', 'type_message', 'date_envoi', 'fichiers_joints']
+        read_only_fields = ['id', 'date_envoi']
+
+    def create(self, validated_data):
+        fichier_joint = validated_data.pop('fichiers_joints', None)
+        message = Message.objects.create(**validated_data)
+
+        if fichier_joint:
+            # Crée un fichier joint pour le message
+            FichierJointMessage.objects.create(
+                message=message,
+                fichier=fichier_joint,
+                taille=fichier_joint.size,
+                type_fichier=fichier_joint.content_type
+            )
+        return message
